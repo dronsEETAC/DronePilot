@@ -29,6 +29,7 @@ import com.o3dr.services.android.lib.mavlink.MavlinkMessageWrapper
 import com.o3dr.services.android.lib.model.AbstractCommandListener
 import com.o3dr.services.android.lib.model.SimpleCommandListener
 import com.o3dr.services.android.lib.model.action.Action
+import kotlinx.coroutines.*
 import org.droidplanner.services.android.impl.utils.CommonApiUtils.sendMavlinkMessage
 import kotlin.math.cos
 import kotlin.math.sin
@@ -44,14 +45,12 @@ class DroneClass private constructor(private var context: Context?){
         private const val serverIP: String = "192.168.0.18" //Piso
         private const val usbBaudRate : Int = 57600
         private const val serverPort : Int = 5763
+        var movementJob: Job? = null
 
         fun getDroneInstance(context: Context): DroneClass {
-            if (droneInstance == null){
-                droneInstance = DroneClass(context.applicationContext)
-
-                droneInstance!!.drone = Drone(context)
-                droneInstance!!.controlTower = ControlTower(context)
-            }
+            droneInstance = DroneClass(context.applicationContext)
+            droneInstance!!.drone = Drone(context)
+            droneInstance!!.controlTower = ControlTower(context)
             return droneInstance!!
         }
 
@@ -119,7 +118,7 @@ class DroneClass private constructor(private var context: Context?){
                     }
                 })
             } else if (!vehicleState.isConnected) {
-                // Connect
+                // Need to connect first
                 alertUser("Connect to a drone first")
             } else if (vehicleState.isConnected && !vehicleState.isArmed) {
                 // Arm
@@ -154,12 +153,16 @@ class DroneClass private constructor(private var context: Context?){
             msg.type_mask = 0b0000111111000111
 
             when (direction) {
+                "stop" -> {
+                    msg.vx = 0f
+                    msg.vy = 0f
+                }
                 "north" -> {
                     msg.vx = velocity
                     msg.vy = 0f
                 }
                 "south" -> {
-                    msg.vx = -velocity
+                    msg.vx = - velocity
                     msg.vy = 0f
                 }
                 "east" -> {
@@ -168,7 +171,23 @@ class DroneClass private constructor(private var context: Context?){
                 }
                 "west" -> {
                     msg.vx = 0f
-                    msg.vy = -velocity
+                    msg.vy = - velocity
+                }
+                "northWest" -> {
+                    msg.vx = velocity
+                    msg.vy = - velocity
+                }
+                "northEast" -> {
+                    msg.vx = velocity
+                    msg.vy = velocity
+                }
+                "southEast" -> {
+                    msg.vx = - velocity
+                    msg.vy = velocity
+                }
+                "southWest" -> {
+                    msg.vx = - velocity
+                    msg.vy = - velocity
                 }
             }
             msg.vz = 0f
@@ -183,6 +202,13 @@ class DroneClass private constructor(private var context: Context?){
 
             val mavMsg = MavlinkMessageWrapper(msg)
             ExperimentalApi.getApi(droneInstance!!.drone).sendMavlinkMessage(mavMsg)
+        }
+
+        fun moveInDirection(direction: String, velocity: Float) = GlobalScope.launch {
+            while (isActive) {
+                moveDrone(direction, velocity)
+                delay(100)
+            }
         }
 
         fun alertUser(message: String?) {
@@ -211,7 +237,7 @@ class DroneClass private constructor(private var context: Context?){
             } else if (vehicleState.isArmed) {
                 // Take off
                 armBtn.text = "TAKE OFF"
-            } else if (vehicleState.isConnected) {
+            } else if (vehicleState.isConnected && !vehicleState.isArmed) {
                 // Connected but not Armed
                 armBtn.text = "ARM"
             }
@@ -221,7 +247,6 @@ class DroneClass private constructor(private var context: Context?){
             when (event) {
                 AttributeEvent.STATE_CONNECTED -> {
                     alertUser("Drone Connected")
-
                     updateConnectedButton(droneInstance!!.drone.isConnected, connectBtn)
                 }
                 AttributeEvent.STATE_DISCONNECTED -> {
@@ -232,6 +257,9 @@ class DroneClass private constructor(private var context: Context?){
                     updateArmButton(armBtn)
                 }
                 AttributeEvent.STATE_ARMING -> {
+                    updateArmButton(armBtn)
+                }
+                AttributeEvent.STATE_VEHICLE_MODE -> {
                     updateArmButton(armBtn)
                 }
                 else -> {}

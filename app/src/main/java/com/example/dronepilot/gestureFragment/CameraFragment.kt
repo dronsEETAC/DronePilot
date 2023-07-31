@@ -50,7 +50,7 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
     private lateinit var droneClient : DroneClass
 
     private lateinit var headingBtn : Button
-    var movementJob: Job? = null
+    //var movementJob: Job? = null
 
     companion object {
         private const val TAG = "Hand gesture recognizer"
@@ -175,7 +175,11 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
             "Closed_Fist" -> {
             }
             "Open_Palm" -> {//STOP
-                stopDrone()
+                DroneClass.movementJob?.cancel()
+                DroneClass.movementJob = null
+                if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
+                    DroneClass.movementJob = DroneClass.moveInDirection("stop", 0f)
+                }
                 resultText.text = "${result[0].categoryName()} -> STOP"
             }
             "Thumb_Up" -> {
@@ -183,57 +187,53 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
                 resultText.text = result[0].categoryName() + " -> RTL"
             }
             "Thumb_Down" -> {
-                movementJob?.cancel()
-                movementJob = null
-                //DroneClass.moveDrone("south", 5f)
-                if (movementJob == null || movementJob?.isCancelled == true) {
-                    movementJob = moveInDirection("south", 5f)
+                DroneClass.movementJob?.cancel()
+                DroneClass.movementJob = null
+                if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
+                    DroneClass.movementJob = DroneClass.moveInDirection("south", 5f)
                 }
                 resultText.text = result[0].categoryName() + " -> SOUTH"
             }
             "Pointing_Up" -> {
-                movementJob?.cancel()
-                movementJob = null
-                //DroneClass.moveDrone("north", 5f)
-                if (movementJob == null || movementJob?.isCancelled == true) {
-                    movementJob = moveInDirection("north", 5f)
+                DroneClass.movementJob?.cancel()
+                DroneClass.movementJob = null
+                if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
+                    DroneClass.movementJob = DroneClass.moveInDirection("north", 5f)
                 }
                 resultText.text = result[0].categoryName() + " -> NORTH"
             }
             "Victory" ->{
-                movementJob?.cancel()
-                movementJob = null
-                //DroneClass.moveDrone("west", 5f)
-                if (movementJob == null || movementJob?.isCancelled == true) {
-                    movementJob = moveInDirection("west", 5f)
+                DroneClass.movementJob?.cancel()
+                DroneClass.movementJob = null
+                if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
+                    DroneClass.movementJob = DroneClass.moveInDirection("west", 5f)
                 }
                 resultText.text = result[0].categoryName() + " -> WEST"
             }
             "ILoveYou" -> {
-                movementJob?.cancel()
-                movementJob = null
-                //DroneClass.moveDrone("east", 5f)
-                if (movementJob == null || movementJob?.isCancelled == true) {
-                    movementJob = moveInDirection("east", 5f)
+                DroneClass.movementJob?.cancel()
+                DroneClass.movementJob = null
+                if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
+                    DroneClass.movementJob = DroneClass.moveInDirection("east", 5f)
                 }
                 resultText.text = result[0].categoryName() + " -> EAST"
             }
             else -> resultText.text = " "
         }
     }
-
+/*
     fun moveInDirection(direction: String, velocity: Float) = GlobalScope.launch {
         while (isActive) {
             DroneClass.moveDrone(direction, velocity)
             delay(100)
         }
-    }
+    }*/
 
     private fun stopDrone() {
-        movementJob?.cancel()
-        movementJob = null
+        //movementJob?.cancel()
+        //movementJob = null
 
-        DroneClass.moveDrone("north", 0f)
+        //DroneClass.moveDrone("north", 0f)
     }
 
     override fun onError(error: String, errorCode: Int) {

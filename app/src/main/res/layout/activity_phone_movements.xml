@@ -16,7 +16,8 @@
         app:layout_constraintHorizontal_bias="0.506"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.096" />
+        app:layout_constraintVertical_bias="0.096"
+        tools:ignore="DuplicateClickableBoundsCheck" />
 
     <Button
         android:id="@+id/armBtn"
@@ -34,7 +35,7 @@
         android:id="@+id/RTLBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="North"
+        android:text="North East"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.427"
@@ -46,7 +47,7 @@
         android:id="@+id/southBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="South"
+        android:text="South East"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.479"
@@ -58,7 +59,7 @@
         android:id="@+id/eastBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="East"
+        android:text="South West"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.885"
@@ -70,7 +71,7 @@
         android:id="@+id/westBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="West"
+        android:text="North West"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.049"

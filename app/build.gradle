@@ -70,4 +70,7 @@ dependencies {
     implementation "androidx.camera:camera-lifecycle:$camerax_version"
 
     implementation 'com.jakewharton.timber:timber:4.7.1'
+
+    //BottonNavigationBar
+    implementation 'com.github.ismaeldivita:chip-navigation-bar:1.4.0'
 }
