@@ -1,0 +1,17 @@
+apply plugin: 'java'
+/*sourceCompatibility = JavaVersion.VERSION_1_7
+targetCompatibility = JavaVersion.VERSION_1_7*/
+
+sourceSets {
+    main {
+        java.srcDirs = ['src']
+    }
+}
+/*
+jar {
+    destinationDirectory = new File("${rootDir}/ClientLib/libs")
+}*/
+
+dependencies {
+    testImplementation 'junit:junit:4.12'
+}
