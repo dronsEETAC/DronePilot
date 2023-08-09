@@ -2,39 +2,28 @@ package com.example.dronepilot
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
-import com.MAVLink.Messages.MAVLinkMessage
-import com.MAVLink.enums.MAV_FRAME
+import com.MAVLink.enums.MAV_CMD.MAV_CMD_CONDITION_YAW
 import com.o3dr.android.client.ControlTower
 import com.o3dr.android.client.Drone
 import com.o3dr.android.client.apis.ControlApi
 import com.o3dr.android.client.apis.ExperimentalApi
 import com.o3dr.android.client.apis.VehicleApi
 import com.o3dr.android.client.interfaces.LinkListener
-import com.o3dr.services.android.lib.coordinate.LatLong
-import com.o3dr.services.android.lib.coordinate.LatLongAlt
-import com.o3dr.services.android.lib.drone.action.ExperimentalActions
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent
 import com.o3dr.services.android.lib.drone.attribute.AttributeType
 import com.o3dr.services.android.lib.drone.connection.ConnectionParameter
-import com.o3dr.services.android.lib.drone.property.Altitude
-import com.o3dr.services.android.lib.drone.property.Gps
 import com.o3dr.services.android.lib.drone.property.State
 import com.o3dr.services.android.lib.drone.property.VehicleMode
 import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus
 import com.o3dr.services.android.lib.mavlink.MavlinkMessageWrapper
 import com.o3dr.services.android.lib.model.AbstractCommandListener
 import com.o3dr.services.android.lib.model.SimpleCommandListener
-import com.o3dr.services.android.lib.model.action.Action
 import kotlinx.coroutines.*
-import org.droidplanner.services.android.impl.utils.CommonApiUtils.sendMavlinkMessage
-import kotlin.math.cos
-import kotlin.math.sin
 
-class DroneClass private constructor(private var context: Context?){
+class DroneClass private constructor(){
     lateinit var drone: Drone
     lateinit var controlTower : ControlTower
 
@@ -45,10 +34,11 @@ class DroneClass private constructor(private var context: Context?){
         private const val serverIP: String = "192.168.0.18" //Piso
         private const val usbBaudRate : Int = 57600
         private const val serverPort : Int = 5763
+        private val droneScope = CoroutineScope(Dispatchers.Main)
         var movementJob: Job? = null
 
         fun getDroneInstance(context: Context): DroneClass {
-            droneInstance = DroneClass(context.applicationContext)
+            droneInstance = DroneClass()
             droneInstance!!.drone = Drone(context)
             droneInstance!!.controlTower = ControlTower(context)
             return droneInstance!!
@@ -62,10 +52,10 @@ class DroneClass private constructor(private var context: Context?){
                 droneInstance!!.drone.connect(connectionParams,  object : LinkListener {
                     override fun onLinkStateUpdated(connectionStatus: LinkConnectionStatus) {
                         alertUser("connectionStatusChanged: $connectionStatus")
-                        Log.d(
+                        /*Log.d(
                             "Connection",
                             "Connection code: ${connectionStatus.statusCode}; Connection status $connectionStatus"
-                        )
+                        )*/
                     }
 
                 })
@@ -80,10 +70,10 @@ class DroneClass private constructor(private var context: Context?){
                 droneInstance!!.drone.connect(connectionParams, object : LinkListener {
                     override fun onLinkStateUpdated(connectionStatus: LinkConnectionStatus) {
                         alertUser("connectionStatusChanged: $connectionStatus")
-                        Log.d(
+                        /*Log.d(
                             "Connection",
                             "Connection code: ${connectionStatus.statusCode}; Connection status $connectionStatus"
-                        )
+                        )*/
                     }
                 })
             }
@@ -95,26 +85,26 @@ class DroneClass private constructor(private var context: Context?){
                 // RTL
                 VehicleApi.getApi(droneInstance!!.drone).setVehicleMode(VehicleMode.COPTER_RTL, object : AbstractCommandListener() {
                     override fun onSuccess() {
-                        alertUser("Vehicle mode change successful.")
+                        //alertUser("Vehicle mode change successful.")
                     }
                     override fun onError(executionError: Int) {
-                        alertUser("Vehicle mode change failed: $executionError")
+                        //alertUser("Vehicle mode change failed: $executionError")
                     }
                     override fun onTimeout() {
-                        alertUser("Vehicle mode change timed out.")
+                        //alertUser("Vehicle mode change timed out.")
                     }
                 })
             } else if (vehicleState.isArmed) {
                 // Take off
                 ControlApi.getApi(droneInstance!!.drone).takeoff(7.0, object : AbstractCommandListener() {
                     override fun onSuccess() {
-                        alertUser("Taking off...")
+                        //alertUser("Taking off...")
                     }
                     override fun onError(i: Int) {
-                        alertUser("Unable to take off: Error number $i.")
+                        //alertUser("Unable to take off: Error number $i.")
                     }
                     override fun onTimeout() {
-                        alertUser("Take off time out.")
+                        //alertUser("Take off time out.")
                     }
                 })
             } else if (!vehicleState.isConnected) {
@@ -128,19 +118,27 @@ class DroneClass private constructor(private var context: Context?){
                         VehicleApi.getApi(droneInstance!!.drone)
                             .arm(true, false, object : SimpleCommandListener() {
                                 override fun onError(executionError: Int) {
-                                    alertUser("Unable to arm vehicle : Error number $executionError.")
+                                    //alertUser("Unable to arm vehicle : Error number $executionError.")
                                 }
 
                                 override fun onTimeout() {
-                                    alertUser("Arming operation timed out.")
+                                    //alertUser("Arming operation timed out.")
                                 }
 
                                 override fun onSuccess() {
-                                    alertUser("Armed")
+                                    //alertUser("Armed")
                                 }
                             })
                     }
                 }
+            }
+        }
+
+
+        fun moveInDirection(direction: String, velocity: Float) = GlobalScope.launch {
+            while (isActive) {
+                moveDrone(direction, velocity)
+                delay(100)
             }
         }
 
@@ -204,15 +202,98 @@ class DroneClass private constructor(private var context: Context?){
             ExperimentalApi.getApi(droneInstance!!.drone).sendMavlinkMessage(mavMsg)
         }
 
-        fun moveInDirection(direction: String, velocity: Float) = GlobalScope.launch {
-            while (isActive) {
-                moveDrone(direction, velocity)
-                delay(100)
+
+        fun moveDroneSameHeading(direction: String, velocity: Float) {
+            val msg = com.MAVLink.common.msg_command_long()
+            msg.target_system = 0
+            msg.target_component = 0
+            msg.command = MAV_CMD_CONDITION_YAW
+            msg.param1 = 0f  // Ángulo absoluto en radianes
+            msg.param2 = 0f //Velocidad de giro
+
+            when (direction) {
+                "stop" -> {
+                    moveDrone("stop", velocity)
+                }
+                "forward" -> {
+                    moveDrone("north", velocity)
+                }
+                "backward" -> {
+                    moveDrone("south", velocity)
+                }
+                "right" -> {
+                    moveDrone("east", velocity)
+                }
+                "left" -> {
+                    moveDrone("west", velocity)
+                }
             }
+
+            val mavMsg = MavlinkMessageWrapper(msg)
+            ExperimentalApi.getApi(droneInstance!!.drone).sendMavlinkMessage(mavMsg)
+
+
         }
 
+
+        fun moveInDirectionWithOutHeading(direction: String, velocity: Float) = GlobalScope.launch {
+            while (isActive) {
+                moveDroneSameHeading(direction, velocity)
+                delay(200)
+            }
+        }
+        /*
+        fun moveDrone(direction: String, velocity: Float) {
+    val msg = com.MAVLink.common.msg_set_position_target_global_int()
+    msg.time_boot_ms = 0
+    msg.target_system = 0
+    msg.target_component = 0
+    msg.coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
+    msg.type_mask = 0b0000111111000111
+
+    val yaw = getYaw()  // Obtener el encabezado actual del dron
+
+    when (direction) {
+        "stop" -> {
+            msg.vx = 0
+            msg.vy = 0
+        }
+        "forward" -> {
+            msg.vx = (velocity * 100).toInt()  // Convertir a centímetros por segundo
+            msg.vy = 0
+        }
+        "backward" -> {
+            msg.vx = (-velocity * 100).toInt()  // Convertir a centímetros por segundo
+            msg.vy = 0
+        }
+        "right" -> {
+            msg.vx = 0
+            msg.vy = (velocity * 100).toInt()  // Convertir a centímetros por segundo
+        }
+        "left" -> {
+            msg.vx = 0
+            msg.vy = (-velocity * 100).toInt()  // Convertir a centímetros por segundo
+        }
+    }
+
+    msg.vz = 0
+    msg.x = 0
+    msg.y = 0
+    msg.z = 0
+    msg.afx = 0
+    msg.afy = 0
+    msg.afz = 0
+    msg.yaw = (yaw * 100).toInt()  // Convertir a centigrados (100 = 1 grado)
+    msg.yaw_rate = 0
+
+    val mavMsg = MavlinkMessageWrapper(msg)
+    ExperimentalApi.getApi(droneInstance!!.drone).sendMavlinkMessage(mavMsg)
+}
+
+         */
+
         fun alertUser(message: String?) {
-            Toast.makeText(droneInstance!!.context?.applicationContext, message, Toast.LENGTH_LONG).show()
+            //Toast.makeText(droneInstance!!.context?.applicationContext, message, Toast.LENGTH_LONG).show()
         }
 
         fun updateConnectedButton(isConnected: Boolean, connectBtn: Button) {
@@ -241,6 +322,10 @@ class DroneClass private constructor(private var context: Context?){
                 // Connected but not Armed
                 armBtn.text = "ARM"
             }
+        }
+
+        fun onDestroy() {
+            droneScope.cancel()
         }
 
         fun droneEvent(event: String?, extras: Bundle?, armBtn: Button, connectBtn: Button){

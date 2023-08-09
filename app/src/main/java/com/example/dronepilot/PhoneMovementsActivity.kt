@@ -2,6 +2,7 @@ package com.example.dronepilot
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -19,17 +20,13 @@ import com.o3dr.android.client.interfaces.TowerListener
 import com.o3dr.services.android.lib.drone.attribute.AttributeType
 import com.o3dr.services.android.lib.drone.property.State
 import kotlinx.coroutines.*
+import java.util.concurrent.TimeUnit
 
 class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneListener, TowerListener {
 
     private lateinit var connectBtn: Button
     private lateinit var armBtn: Button
-    private lateinit var rtlBtn: Button
     private lateinit var stopBtn: Button
-    private lateinit var eastBtn: Button
-    private lateinit var westBtn: Button
-    private lateinit var southBtn: Button
-
     private lateinit var resTextView: TextView
 
     private val handler: Handler = Handler(Looper.getMainLooper())
@@ -43,6 +40,8 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_phone_movements)
+
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 
         sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
@@ -62,18 +61,6 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
 
         stopBtn = findViewById(R.id.stopBtn)
         stopBtn.setOnClickListener { stopDrone() }
-
-        southBtn = findViewById(R.id.southBtn)
-        southBtn.setOnClickListener { goSouthEast() }
-
-        eastBtn = findViewById(R.id.eastBtn)
-        eastBtn.setOnClickListener { goSouthWest() }
-
-        westBtn = findViewById(R.id.westBtn)
-        westBtn.setOnClickListener { goNorthWest() }
-
-        rtlBtn = findViewById(R.id.RTLBtn)
-        rtlBtn.setOnClickListener { goNorthEast() }
         resTextView = findViewById(R.id.resTextView)
     }
 
@@ -115,6 +102,17 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
         droneClient.controlTower.connect(this)
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        DroneClass.onDestroy()
+
+        if (droneClient.drone.isConnected) {
+            droneClient.drone.disconnect()
+            DroneClass.updateConnectedButton(false,connectBtn)
+        }
+
+    }
+
     override fun onStop() {
         super.onStop()
         if (droneClient.drone.isConnected) {
@@ -123,69 +121,6 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
         }
         droneClient.controlTower.unregisterDrone(droneClient.drone)
         droneClient.controlTower.disconnect()
-    }
-
-    private fun goNorth(){
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = null
-        if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-            DroneClass.movementJob = DroneClass.moveInDirection("north", 5f)
-        }
-    }
-
-    private fun goSur(){
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = null
-        if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-            DroneClass.movementJob = DroneClass.moveInDirection("south", 5f)
-        }
-    }
-
-    private fun goEast(){
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = null
-        if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-            DroneClass.movementJob = DroneClass.moveInDirection("east", 5f)
-        }
-    }
-    private fun goWest(){
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = null
-        if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-            DroneClass.movementJob = DroneClass.moveInDirection("west", 5f)
-        }
-    }
-
-    private fun goSouthWest(){
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = null
-        if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-            DroneClass.movementJob = DroneClass.moveInDirection("southWest", 5f)
-        }
-    }
-
-    private fun goSouthEast(){
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = null
-        if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-            DroneClass.movementJob = DroneClass.moveInDirection("southEast", 5f)
-        }
-    }
-
-    private fun goNorthWest(){
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = null
-        if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-            DroneClass.movementJob = DroneClass.moveInDirection("northWest", 5f)
-        }
-    }
-
-    private fun goNorthEast(){
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = null
-        if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-            DroneClass.movementJob = DroneClass.moveInDirection("northEast", 5f)
-        }
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -202,26 +137,33 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
 
             isDroneFlying = vehicleState.isFlying
 
-            if (isDroneFlying) {
+            //if (isDroneFlying) {
                 when {
-                    x < -0.7 -> moveDrone("left")
-                    x > 0.7 -> moveDrone("right")
-                    y < -0.7 -> moveDrone("back")
-                    y > 0.7 -> moveDrone("forward")
-                    x > 0.6 && y < -0.6 -> moveDrone("southEast")
-                    x < -0.6 && y < -0.6 -> moveDrone("southWest")
-                    x > 0.6 && y > 0.6 -> moveDrone("northEast")
-                    x < -0.6 && y > 0.6 -> moveDrone("northWest")
+                    x < -0.7 -> {
+                        resTextView.text = "left"
+                        moveDrone("left")
+                    }
+                    x > 0.7 -> {
+                        resTextView.text = "right"
+                        moveDrone("right")
+                    }
+                    y < -0.7 -> {
+                        resTextView.text = "back"
+                        moveDrone("back")
+                    }
+                    y > 0.7 -> {
+                        resTextView.text = "forward"
+                        moveDrone("forward")
+                    }
                     else -> resTextView.text = " "
                 }
-            }
+            //}
         }
     }
 
     private fun moveDrone(direction: String) {
         DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = DroneClass.moveInDirection(direction, 5f)
-        resTextView.text = "Inclinación hacia $direction"
+        DroneClass.movementJob = DroneClass.moveInDirectionWithOutHeading(direction, 5f)
     }
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {

@@ -4,11 +4,13 @@ import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Button
+import androidx.appcompat.widget.Toolbar
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var gestureBtn: Button
     private lateinit var movementsBtn: Button
+    private lateinit var toolbar : Toolbar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,6 +21,10 @@ class MainActivity : AppCompatActivity() {
 
         movementsBtn = findViewById(R.id.movementsBtn)
         movementsBtn.setOnClickListener { openMovementsActivity() }
+
+        toolbar = findViewById(R.id.mainToolBar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
     }
 
     private fun openMovementsActivity() {

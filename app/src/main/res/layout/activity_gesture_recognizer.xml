@@ -13,4 +13,52 @@
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_graph" />
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_alignParentTop="true"
+        android:background="@color/light_gray">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/batteryPercentageTxt"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:text="0%"
+                android:textSize="16sp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"/>
+            <TextView
+                android:id="@+id/highValueTxt"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:text="0m"
+                android:textSize="16sp"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"/>
+            <TextView
+                android:id="@+id/velocityValueTxt"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:text="0m/s"
+                android:textSize="16sp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/drone"
+            android:id="@+id/drone_toolbar"
+            android:layout_gravity="right"
+            />
+    </androidx.appcompat.widget.Toolbar>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

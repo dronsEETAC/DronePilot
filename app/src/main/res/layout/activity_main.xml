@@ -6,28 +6,45 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/mainToolBar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="@color/light_gray"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:layout_width="300dp"
+            android:layout_height="match_parent"
+            android:layout_gravity="center"
+            android:src="@drawable/logo" />
+    </androidx.appcompat.widget.Toolbar>
+
     <Button
         android:id="@+id/gestureBtn"
-        android:layout_width="200dp"
-        android:layout_height="150dp"
+        android:layout_width="280dp"
+        android:layout_height="180dp"
         android:text="Gesture Recognizer"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.678" />
+        app:layout_constraintVertical_bias="0.813" />
 
     <Button
         android:id="@+id/movementsBtn"
-        android:layout_width="200dp"
-        android:layout_height="150dp"
+        android:layout_width="280dp"
+        android:layout_height="180dp"
         android:layout_marginBottom="5dp"
         android:text="Movement changes"
         app:layout_constraintBottom_toTopOf="@+id/gestureBtn"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
+        app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.807" />
+        app:layout_constraintVertical_bias="0.811" />
 </androidx.constraintlayout.widget.ConstraintLayout>

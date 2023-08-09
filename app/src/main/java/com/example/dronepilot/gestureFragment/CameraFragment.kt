@@ -1,5 +1,6 @@
 package com.example.dronepilot.gestureFragment
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -15,20 +16,22 @@ import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import com.example.dronepilot.DroneClass
-import com.example.dronepilot.GestureRecognizerClass
-import com.example.dronepilot.MainActivity
+import com.example.dronepilot.*
 import com.example.dronepilot.R
 import com.example.dronepilot.databinding.FragmentCameraBinding
 import com.google.mediapipe.tasks.components.containers.Category
 import com.o3dr.android.client.interfaces.DroneListener
 import com.o3dr.android.client.interfaces.TowerListener
+import com.o3dr.services.android.lib.drone.attribute.AttributeType
+import com.o3dr.services.android.lib.drone.property.Altitude
+import com.o3dr.services.android.lib.drone.property.Battery
+import com.o3dr.services.android.lib.drone.property.Speed
+import com.o3dr.services.android.lib.drone.property.State
 import timber.log.Timber
 import timber.log.Timber.DebugTree
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlinx.coroutines.*
 
 
 class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListener, DroneListener, TowerListener {
@@ -43,14 +46,11 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
     private lateinit var backgroundExecutor: ExecutorService
     private lateinit var resultText : TextView
     private val handler: Handler = Handler(Looper.getMainLooper())
-
     private lateinit var connectGesBtn : Button
     private lateinit var armGesBtn : Button
-
     private lateinit var droneClient : DroneClass
-
-    private lateinit var headingBtn : Button
-    //var movementJob: Job? = null
+    private val parametersUpdateHandler = Handler()
+    private var droneParametersStatusListener: DroneParametersStatusListener? = null
 
     companion object {
         private const val TAG = "Hand gesture recognizer"
@@ -80,12 +80,20 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
 
         //Asegura que el metodo setUpCamera se ejecuta en el hilo principal
         fragmentCameraBinding.cameraPreview.post { startCamera() }
-
+        parametersUpdateHandler.postDelayed(parametersUpdateRunnable, 0)
         backgroundExecutor.execute {
             gestureRecognizerClass = GestureRecognizerClass(
                 context = requireContext(),
                 gestureRecognizerListener = this
             )
+        }
+    }
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        try {
+            droneParametersStatusListener = context as DroneParametersStatusListener
+        } catch (e: ClassCastException) {
+            throw ClassCastException("$context must implement BatteryStatusListener")
         }
     }
 
@@ -169,71 +177,98 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
         }
     }
 
-    private fun resultAnalysis(result: MutableList<Category>){
+    private fun resultAnalysis(result: MutableList<Category>) {
         resultText.text = result[0].categoryName()
-        when (result[0].categoryName()) {
-            "Closed_Fist" -> {
-            }
-            "Open_Palm" -> {//STOP
-                DroneClass.movementJob?.cancel()
-                DroneClass.movementJob = null
-                if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-                    DroneClass.movementJob = DroneClass.moveInDirection("stop", 0f)
+        val vehicleState = droneClient.drone.getAttribute<State>(AttributeType.STATE)
+        val isDroneFlying = vehicleState.isFlying
+
+        if (isDroneFlying) {
+            when (result[0].categoryName()) {
+                "chill" -> { //SE
+                    moveDrone("southEast")
+                    resultText.text = "${result[0].categoryName()} -> SE"
                 }
-                resultText.text = "${result[0].categoryName()} -> STOP"
-            }
-            "Thumb_Up" -> {
-                //DroneClass.returnToLaunch()
-                resultText.text = result[0].categoryName() + " -> RTL"
-            }
-            "Thumb_Down" -> {
-                DroneClass.movementJob?.cancel()
-                DroneClass.movementJob = null
-                if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-                    DroneClass.movementJob = DroneClass.moveInDirection("south", 5f)
+                "open_palm" -> {//STOP
+                    moveDrone("stop")
+                    resultText.text = "${result[0].categoryName()} -> STOP"
                 }
-                resultText.text = result[0].categoryName() + " -> SOUTH"
-            }
-            "Pointing_Up" -> {
-                DroneClass.movementJob?.cancel()
-                DroneClass.movementJob = null
-                if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-                    DroneClass.movementJob = DroneClass.moveInDirection("north", 5f)
+                "thumb_up" -> { // N
+                    moveDrone("north")
+                    resultText.text = result[0].categoryName() + " -> NORTH"
                 }
-                resultText.text = result[0].categoryName() + " -> NORTH"
-            }
-            "Victory" ->{
-                DroneClass.movementJob?.cancel()
-                DroneClass.movementJob = null
-                if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-                    DroneClass.movementJob = DroneClass.moveInDirection("west", 5f)
+                "thumb_down" -> { //S
+                    moveDrone("south")
+                    resultText.text = result[0].categoryName() + " -> SOUTH"
                 }
-                resultText.text = result[0].categoryName() + " -> WEST"
-            }
-            "ILoveYou" -> {
-                DroneClass.movementJob?.cancel()
-                DroneClass.movementJob = null
-                if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-                    DroneClass.movementJob = DroneClass.moveInDirection("east", 5f)
+                "l" -> { //W
+                    moveDrone("west")
+                    resultText.text = result[0].categoryName() + " -> WEST "
                 }
-                resultText.text = result[0].categoryName() + " -> EAST"
+                "victory" -> { //NO
+                    moveDrone("northWest")
+                    resultText.text = result[0].categoryName() + " -> NO"
+                }
+                "rockstar" -> { //NE
+                    moveDrone("northEast")
+                    resultText.text = result[0].categoryName() + " -> NE"
+                }
+                "tres" -> { //east
+                    moveDrone("east")
+                    resultText.text = result[0].categoryName() + " -> E"
+                }
+                "ok" -> { //SO
+                    moveDrone("southWest")
+                    resultText.text = result[0].categoryName() + " -> SW"
+                }
+                else -> resultText.text = result[0].categoryName()
             }
-            else -> resultText.text = " "
         }
     }
-/*
-    fun moveInDirection(direction: String, velocity: Float) = GlobalScope.launch {
-        while (isActive) {
-            DroneClass.moveDrone(direction, velocity)
-            delay(100)
+
+    private fun batteryPercentage() : Int {
+        return if (droneClient.drone.isConnected) {
+            val vehicleBattery = droneClient.drone.getAttribute<Battery>(AttributeType.BATTERY)
+            (vehicleBattery.batteryRemain).toInt()
+        } else{
+            0
         }
-    }*/
+    }
 
-    private fun stopDrone() {
-        //movementJob?.cancel()
-        //movementJob = null
+    private fun velocity() : Double {
+        return if (droneClient.drone.isConnected) {
+            val vehicleVelocity = droneClient.drone.getAttribute<Speed>(AttributeType.SPEED)
+            vehicleVelocity.groundSpeed
+        } else{
+            0.0
+        }
+    }
 
-        //DroneClass.moveDrone("north", 0f)
+    private fun high() : Double {
+        return if (droneClient.drone.isConnected) {
+            val vehicleAltitude = droneClient.drone.getAttribute<Altitude>(AttributeType.ALTITUDE)
+            vehicleAltitude.altitude / 100
+        } else{
+            0.0
+        }
+    }
+
+
+
+    private val parametersUpdateRunnable = object : Runnable {
+        override fun run() {
+            val batteryPercentage = batteryPercentage()
+            droneParametersStatusListener?.onBatteryPercentageChanged(batteryPercentage)
+            val velocity = velocity()
+            droneParametersStatusListener?.onVelocityChanged(velocity)
+            val high = high()
+            droneParametersStatusListener?.onHighChanged(high)
+            parametersUpdateHandler.postDelayed(this, 2000)
+        }
+    }
+
+    private fun moveDrone(direction: String) {
+        DroneClass.movementJob?.cancel()
+        DroneClass.movementJob = DroneClass.moveInDirection(direction, 5f)
     }
 
     override fun onError(error: String, errorCode: Int) {
@@ -244,7 +279,7 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
 
     override fun onResume() {
         super.onResume()
-
+        parametersUpdateHandler.postDelayed(parametersUpdateRunnable, 0)
         backgroundExecutor.execute {
             if (gestureRecognizerClass.isClosed()) {
                 gestureRecognizerClass.gestureRecognizer()
@@ -254,6 +289,7 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
 
     override fun onPause() {
         super.onPause()
+        parametersUpdateHandler.removeCallbacks(parametersUpdateRunnable)
 
         if (this::gestureRecognizerClass.isInitialized) {
             backgroundExecutor.execute { gestureRecognizerClass.clearGestureRecognizer() }
@@ -262,6 +298,7 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
 
     override fun onDestroyView() {
         super.onDestroyView()
+        DroneClass.onDestroy()
         _fragmentCameraBinding = null
 
         if (droneClient.drone.isConnected) {
@@ -295,7 +332,6 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
     override fun onDroneServiceInterrupted(errorMsg: String?) {
         Log.d("DroneServiceInterrupted CameraFragment", "$errorMsg")
         Toast.makeText(requireContext(), "Drone service interrumpted: $errorMsg", Toast.LENGTH_LONG)
-
     }
 
     override fun onTowerConnected() {

@@ -117,7 +117,7 @@ class GestureRecognizerClass(val context: Context, val gestureRecognizerListener
 
     companion object {
         val TAG = "GestureRecognizerHelper"
-        private const val MP_RECOGNIZER_TASK = "D:/UNI/DronePilot/app/src/main/assets/gesture_recognizer.task"
+        private const val MP_RECOGNIZER_TASK = "D:/UNI/DronePilot/app/src/main/assets/gesture_recognizer_tots.task"
 
         const val DEFAULT_HAND_DETECTION_CONFIDENCE = 0.5F
         const val DEFAULT_HAND_TRACKING_CONFIDENCE = 0.5F
