@@ -88,6 +88,7 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
             )
         }
     }
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
         try {
@@ -252,8 +253,6 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
         }
     }
 
-
-
     private val parametersUpdateRunnable = object : Runnable {
         override fun run() {
             val batteryPercentage = batteryPercentage()
@@ -262,13 +261,14 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
             droneParametersStatusListener?.onVelocityChanged(velocity)
             val high = high()
             droneParametersStatusListener?.onHighChanged(high)
-            parametersUpdateHandler.postDelayed(this, 2000)
+            parametersUpdateHandler.postDelayed(this, 1000)
         }
     }
 
     private fun moveDrone(direction: String) {
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = DroneClass.moveInDirection(direction, 5f)
+        //DroneClass.movementJob?.cancel()
+        //DroneClass.movementJob = DroneClass.moveInDirection(direction, 5f)
+        DroneClass.moveInDirection(direction, 5f)
     }
 
     override fun onError(error: String, errorCode: Int) {
@@ -294,6 +294,7 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
         if (this::gestureRecognizerClass.isInitialized) {
             backgroundExecutor.execute { gestureRecognizerClass.clearGestureRecognizer() }
         }
+        DroneClass.stopMoving()
     }
 
     override fun onDestroyView() {
@@ -321,6 +322,7 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
             droneClient.drone.disconnect()
             DroneClass.updateConnectedButton(false,connectGesBtn)
         }
+        DroneClass.stopMoving()
         droneClient.controlTower.unregisterDrone(droneClient.drone)
         droneClient.controlTower.disconnect()
     }
@@ -331,7 +333,7 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
 
     override fun onDroneServiceInterrupted(errorMsg: String?) {
         Log.d("DroneServiceInterrupted CameraFragment", "$errorMsg")
-        Toast.makeText(requireContext(), "Drone service interrumpted: $errorMsg", Toast.LENGTH_LONG)
+        Toast.makeText(requireContext(), "Drone service interrumpted: $errorMsg", Toast.LENGTH_LONG).show()
     }
 
     override fun onTowerConnected() {
@@ -361,6 +363,7 @@ class CameraFragment : Fragment(), GestureRecognizerClass.GestureRecognizerListe
         }
         droneClient.controlTower.unregisterDrone(droneClient.drone)
         droneClient.controlTower.disconnect()
+        DroneClass.stopMoving()
     }
 
 }

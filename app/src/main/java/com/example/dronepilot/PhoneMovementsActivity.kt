@@ -11,7 +11,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -19,8 +18,6 @@ import com.o3dr.android.client.interfaces.DroneListener
 import com.o3dr.android.client.interfaces.TowerListener
 import com.o3dr.services.android.lib.drone.attribute.AttributeType
 import com.o3dr.services.android.lib.drone.property.State
-import kotlinx.coroutines.*
-import java.util.concurrent.TimeUnit
 
 class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneListener, TowerListener {
 
@@ -65,11 +62,7 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
     }
 
     private fun stopDrone() {
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = null
-        if (DroneClass.movementJob == null || DroneClass.movementJob?.isCancelled == true) {
-            DroneClass.movementJob = DroneClass.moveInDirection("stop", 0f)
-        }
+        moveDrone("stop")
     }
 
     private fun armDrone() {
@@ -85,7 +78,7 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
     }
 
     override fun onDroneServiceInterrupted(errorMsg: String?) {
-        Toast.makeText(this@PhoneMovementsActivity, "Drone service interrumpted: $errorMsg", Toast.LENGTH_LONG)
+        Toast.makeText(this@PhoneMovementsActivity, "Drone service interrumpted: $errorMsg", Toast.LENGTH_LONG).show()
     }
 
     override fun onTowerConnected() {
@@ -94,7 +87,7 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
     }
 
     override fun onTowerDisconnected() {
-        Toast.makeText(this@PhoneMovementsActivity, "Tower disconnect", Toast.LENGTH_LONG)
+        Toast.makeText(this@PhoneMovementsActivity, "Tower disconnect", Toast.LENGTH_LONG).show()
     }
 
     override fun onStart() {
@@ -119,6 +112,7 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
             droneClient.drone.disconnect()
             DroneClass.updateConnectedButton(false,connectBtn)
         }
+        DroneClass.stopMoving()
         droneClient.controlTower.unregisterDrone(droneClient.drone)
         droneClient.controlTower.disconnect()
     }
@@ -137,7 +131,7 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
 
             isDroneFlying = vehicleState.isFlying
 
-            //if (isDroneFlying) {
+            if (isDroneFlying) {
                 when {
                     x < -0.7 -> {
                         resTextView.text = "left"
@@ -157,13 +151,14 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
                     }
                     else -> resTextView.text = " "
                 }
-            //}
+            }
         }
     }
 
     private fun moveDrone(direction: String) {
-        DroneClass.movementJob?.cancel()
-        DroneClass.movementJob = DroneClass.moveInDirectionWithOutHeading(direction, 5f)
+        //DroneClass.movementJob?.cancel()
+        //DroneClass.movementJob = DroneClass.moveInDirection(direction, 5f)
+        DroneClass.moveInDirectionHeading(direction, 5f)
     }
 
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
@@ -179,6 +174,7 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
         }
         droneClient.controlTower.unregisterDrone(droneClient.drone)
         droneClient.controlTower.disconnect()
+        DroneClass.stopMoving()
         finish()
     }
 

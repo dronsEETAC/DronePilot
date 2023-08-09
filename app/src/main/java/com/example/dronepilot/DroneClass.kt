@@ -2,9 +2,9 @@ package com.example.dronepilot
 
 import android.content.Context
 import android.os.Bundle
+import android.os.Handler
 import android.view.View
 import android.widget.Button
-import android.widget.Toast
 import com.MAVLink.enums.MAV_CMD.MAV_CMD_CONDITION_YAW
 import com.o3dr.android.client.ControlTower
 import com.o3dr.android.client.Drone
@@ -29,13 +29,16 @@ class DroneClass private constructor(){
 
     companion object{
         private var droneInstance : DroneClass? = null
-        //private const val serverIP: String = "172.20.10.3" //Internet movil
+        private const val serverIP: String = "172.20.10.3" //Internet movil
         //private const val serverIP: String = "192.168.0.128" //Casa
-        private const val serverIP: String = "192.168.0.18" //Piso
+        //private const val serverIP: String = "192.168.0.18" //Piso
         private const val usbBaudRate : Int = 57600
         private const val serverPort : Int = 5763
-        private val droneScope = CoroutineScope(Dispatchers.Main)
-        var movementJob: Job? = null
+        //private val droneScope = CoroutineScope(Dispatchers.Main)
+        //var movementJob: Job? = null
+        val handler = Handler()
+        var currentDirection: String? = null
+        var currentVelocity: Float = 0f
 
         fun getDroneInstance(context: Context): DroneClass {
             droneInstance = DroneClass()
@@ -134,12 +137,52 @@ class DroneClass private constructor(){
             }
         }
 
-
+/*/
         fun moveInDirection(direction: String, velocity: Float) = GlobalScope.launch {
             while (isActive) {
                 moveDrone(direction, velocity)
                 delay(100)
             }
+        }*/
+
+        private val runnableMoveDirection = object : Runnable {
+            override fun run() {
+                if (currentDirection != null) {
+                    moveDrone(currentDirection!!, currentVelocity)
+                    handler.postDelayed(this, 100) // Lanzar el Runnable nuevamente después de 100 ms
+                }
+            }
+        }
+
+        private val runnableMoveDirectionHeading = object : Runnable {
+            override fun run() {
+                if (currentDirection != null) {
+                    moveDroneSameHeading(currentDirection!!, currentVelocity)
+                    handler.postDelayed(this, 100) // Lanzar el Runnable nuevamente después de 100 ms
+                }
+            }
+        }
+
+        fun moveInDirection(direction: String, velocity: Float) {
+            currentDirection = direction
+            currentVelocity = velocity
+            handler.post(runnableMoveDirection)
+        }
+
+        fun moveInDirectionHeading(direction: String, velocity: Float) {
+            currentDirection = direction
+            currentVelocity = velocity
+            handler.post(runnableMoveDirectionHeading)
+        }
+
+        fun stopMoving() {
+            handler.removeCallbacks(runnableMoveDirection)
+            currentDirection = null
+            currentVelocity = 0f
+        }
+
+        fun onDestroy() {
+            handler.removeCallbacksAndMessages(null) // Limpia todos los mensajes y Runnable pendientes
         }
 
         fun moveDrone(direction: String, velocity: Float) {
@@ -235,13 +278,6 @@ class DroneClass private constructor(){
 
         }
 
-
-        fun moveInDirectionWithOutHeading(direction: String, velocity: Float) = GlobalScope.launch {
-            while (isActive) {
-                moveDroneSameHeading(direction, velocity)
-                delay(200)
-            }
-        }
         /*
         fun moveDrone(direction: String, velocity: Float) {
     val msg = com.MAVLink.common.msg_set_position_target_global_int()
@@ -322,10 +358,6 @@ class DroneClass private constructor(){
                 // Connected but not Armed
                 armBtn.text = "ARM"
             }
-        }
-
-        fun onDestroy() {
-            droneScope.cancel()
         }
 
         fun droneEvent(event: String?, extras: Bundle?, armBtn: Button, connectBtn: Button){
