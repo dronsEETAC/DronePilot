@@ -34,7 +34,7 @@
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"/>
             <TextView
-                android:id="@+id/highValueTxt"
+                android:id="@+id/altitudeValueTxt"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"

@@ -5,5 +5,5 @@ interface DroneParametersStatusListener {
 
     fun onVelocityChanged(velocity: Double)
 
-    fun onHighChanged(high: Double)
+    fun onAltitudeChanged(high: Double)
 }

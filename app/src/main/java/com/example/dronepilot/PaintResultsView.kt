@@ -10,11 +10,16 @@ import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResu
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmark
 import kotlin.math.max
 
-class PaintResultsView(context: Context?, attributeSet: AttributeSet?) : View(context, attributeSet) { //OverlayView extiende la clase View y este es el constructor de esa clase
+class PaintResultsView(context: Context?, attributeSet: AttributeSet?) : View(context, attributeSet) {
+
+    // Resultados obtenidos del reconocedor de gestos
     private var results: GestureRecognizerResult? = null
+
+    // Pinceles para dibujar las líneas y puntos
     private var linePaint = Paint()
     private var pointPaint = Paint()
 
+    // Factores para el escalado y dimensiones de la imagen
     private var scaleFactor: Float = 1f
     private var imageWidth: Int = 1
     private var imageHeight: Int = 1
@@ -23,19 +28,13 @@ class PaintResultsView(context: Context?, attributeSet: AttributeSet?) : View(co
         initPaints()
     }
 
-    fun clear() {
-        results = null
-        linePaint.reset()
-        pointPaint.reset()
-        invalidate()
-        initPaints()
-    }
-
     private fun initPaints() {
+        // Configuración del pincel para dibujar líneas
         linePaint.color = Color.BLUE
         linePaint.strokeWidth = LANDMARK_STROKE_WIDTH //Ancho de la linea dibujada
         linePaint.style = Paint.Style.STROKE //Solo se dibuja el contorno de las lineas
 
+        // Configuración del pincel para dibujar puntos
         pointPaint.color = Color.YELLOW
         pointPaint.strokeWidth = LANDMARK_STROKE_WIDTH
         pointPaint.style = Paint.Style.FILL //Se rellenan los puntos
@@ -48,8 +47,8 @@ class PaintResultsView(context: Context?, attributeSet: AttributeSet?) : View(co
             val points = mutableListOf<Float>()
 
             for (landmarks in gestureRecognizerResult.landmarks()) {
-                for (i in landmarkConnections.indices step 2) { //landmarkConnections.indices significa que devuelve un rango de indices que comienzan en cero y aumentan en incremento de dos hasta la longitud de la lista landmarkConnections
-                    val startX = landmarks[landmarkConnections[i]].x() * imageWidth * scaleFactor //Actualiza la posicion x
+                for (i in landmarkConnections.indices step 2) {
+                    val startX = landmarks[landmarkConnections[i]].x() * imageWidth * scaleFactor
                     val startY = landmarks[landmarkConnections[i]].y() * imageHeight * scaleFactor
                     val endX = landmarks[landmarkConnections[i + 1]].x() * imageWidth * scaleFactor
                     val endY = landmarks[landmarkConnections[i + 1]].y() * imageHeight * scaleFactor
@@ -60,29 +59,32 @@ class PaintResultsView(context: Context?, attributeSet: AttributeSet?) : View(co
                     points.add(startX)
                     points.add(startY)
                 }
+                // Dibuja las líneas y puntos en el canvas
                 canvas.drawLines(lines.toFloatArray(), linePaint)
                 canvas.drawPoints(points.toFloatArray(), pointPaint)
             }
         }
     }
 
+    /**
+     * Establece los resultados para visualización y recalcula las dimensiones y el factor de escala
+     */
     fun setResults( gestureRecognizerResult: GestureRecognizerResult, imageHeight: Int, imageWidth: Int) {
         results = gestureRecognizerResult
 
         this.imageHeight = imageHeight
         this.imageWidth = imageWidth
 
-        scaleFactor = max(width * 1f / imageWidth, height * 1f / imageHeight) //escalar las coordenadas entre el view que se dibuja y el canvas de la imagen original
+        //Escalar las coordenadas entre el view que se dibuja y el canvas de la imagen original
+        scaleFactor = max(width * 1f / imageWidth, height * 1f / imageHeight)
 
-        invalidate() //Actualizar la vista actual
+        invalidate() //Actualizar la vista para que se redibuje
     }
 
     companion object {
         private const val LANDMARK_STROKE_WIDTH = 8F //8F = 8 pixeles
 
-        // This list defines the lines that are drawn when visualizing the hand landmark detection
-        // results. These lines connect:
-        // landmarkConnections[2*n] and landmarkConnections[2*n+1]
+        //Lista de conexiones entre landmarks para visualizar las marcas de la mano.
         private val landmarkConnections = listOf(
             HandLandmark.WRIST,
             HandLandmark.THUMB_CMC,

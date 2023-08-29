@@ -3,11 +3,14 @@ package com.example.dronepilot
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Log
 import android.view.MenuItem
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.Toolbar
+import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.NavHostFragment
 import com.example.dronepilot.gestureFragment.CameraFragment
 import com.example.dronepilot.gestureFragment.PermissionsFragment
 
@@ -28,28 +31,41 @@ class GestureRecognizerActivity : AppCompatActivity(), DroneParametersStatusList
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         val imageView: ImageView = findViewById(R.id.drone_toolbar)
         imageView.setOnClickListener {
-            showMessageBox()
+            showImageDialog()
         }
 
         batteryPercentageTextView = findViewById(R.id.batteryPercentageTxt)
         velocityTextView = findViewById(R.id.velocityValueTxt)
-        highTextView = findViewById(R.id.highValueTxt)
+        highTextView = findViewById(R.id.altitudeValueTxt)
     }
 
-    private fun showMessageBox() {
-        val alertDialogBuilder = AlertDialog.Builder(this)
-        alertDialogBuilder.setTitle("Mensaje")
-        alertDialogBuilder.setMessage("Has hecho clic en la imagen del Toolbar.")
-        alertDialogBuilder.setPositiveButton("Aceptar") { dialog, _ ->
+    private fun getCurrentFragment(): Fragment? {
+        val navHostFragment = supportFragmentManager.findFragmentById(R.id.fragmentContainerView) as NavHostFragment?
+        return navHostFragment?.childFragmentManager?.fragments?.get(0)
+    }
+
+    private fun showImageDialog() {
+        val imageDialog = AlertDialog.Builder(this)
+        val inflater = this.layoutInflater
+        val view = inflater.inflate(R.layout.image_commands_gesture, null)
+        val dialogImage: ImageView = view.findViewById(R.id.dialogImageView)
+
+        dialogImage.setImageResource(R.drawable.gesture_commands)
+        val currentFragment = getCurrentFragment()
+        if (currentFragment is CameraFragment) {
+            currentFragment.stop()
+        }
+        imageDialog.setView(view)
+        imageDialog.setPositiveButton("Cerrar") { dialog, _ ->
             dialog.dismiss()
         }
 
-        val alertDialog = alertDialogBuilder.create()
-        alertDialog.show()
+        val dialog = imageDialog.create()
+        dialog.show()
     }
 
     override fun onBackPressed() {
-        val currentFragment = supportFragmentManager.findFragmentById(R.id.cameraFragment)
+        val currentFragment = getCurrentFragment()
 
         if (currentFragment is CameraFragment) {
             currentFragment.onBackPressed()
@@ -72,27 +88,15 @@ class GestureRecognizerActivity : AppCompatActivity(), DroneParametersStatusList
     }
 
     override fun onBatteryPercentageChanged(percentage: Int) {
-        updateBatteryPercentage(percentage)
-    }
-
-    override fun onVelocityChanged(velocity: Double) {
-        updateVelocity(velocity)
-    }
-
-    override fun onHighChanged(high: Double) {
-        updateHigh(high)
-    }
-
-    private fun updateBatteryPercentage(percentage: Int) {
         batteryPercentageTextView.text = "$percentage%"
     }
 
-    private fun updateVelocity(velocity: Double) {
+    override fun onVelocityChanged(velocity: Double) {
         velocityTextView.text = "${formatDecimalValue(velocity)}m/s"
     }
 
-    private fun updateHigh(high: Double) {
-        highTextView.text = "${formatDecimalValue(high)}m"
+    override fun onAltitudeChanged(altitude: Double) {
+        highTextView.text = "${formatDecimalValue(altitude)}m"
     }
 
     private fun formatDecimalValue(value: Double): String {

@@ -3,8 +3,10 @@ package com.example.dronepilot
 import android.content.Context
 import android.os.Bundle
 import android.os.Handler
+import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.Toast
 import com.MAVLink.enums.MAV_CMD.MAV_CMD_CONDITION_YAW
 import com.o3dr.android.client.ControlTower
 import com.o3dr.android.client.Drone
@@ -15,6 +17,7 @@ import com.o3dr.android.client.interfaces.LinkListener
 import com.o3dr.services.android.lib.drone.attribute.AttributeEvent
 import com.o3dr.services.android.lib.drone.attribute.AttributeType
 import com.o3dr.services.android.lib.drone.connection.ConnectionParameter
+import com.o3dr.services.android.lib.drone.property.Parameter
 import com.o3dr.services.android.lib.drone.property.State
 import com.o3dr.services.android.lib.drone.property.VehicleMode
 import com.o3dr.services.android.lib.gcs.link.LinkConnectionStatus
@@ -23,214 +26,262 @@ import com.o3dr.services.android.lib.model.AbstractCommandListener
 import com.o3dr.services.android.lib.model.SimpleCommandListener
 import kotlinx.coroutines.*
 
-class DroneClass private constructor(){
+class DroneClass private constructor(context: Context){
     lateinit var drone: Drone
     lateinit var controlTower : ControlTower
+    var context:Context = context
 
     companion object{
         private var droneInstance : DroneClass? = null
-        private const val serverIP: String = "172.20.10.3" //Internet movil
+        //private const val serverIP: String = "172.20.10.3" //Internet movil
         //private const val serverIP: String = "192.168.0.128" //Casa
-        //private const val serverIP: String = "192.168.0.18" //Piso
+        private const val serverIP: String = "192.168.0.18" //Piso
         private const val usbBaudRate : Int = 57600
         private const val serverPort : Int = 5763
-        //private val droneScope = CoroutineScope(Dispatchers.Main)
-        //var movementJob: Job? = null
         val handler = Handler()
         var currentDirection: String? = null
-        var currentVelocity: Float = 0f
+        //var currentVelocity: Float = 0f
+        private const val TAKEOFF_ALTITUDE = 7.0
+        private const val VEL_DRONE = 5f
 
+        /**
+         * Funcion que proporciona una instancia de la clase DroneClass
+         * @param context Contexto de la aplicación o actividad actual
+         */
         fun getDroneInstance(context: Context): DroneClass {
-            droneInstance = DroneClass()
+            //Crea una nueva instancia de DroneClass
+            droneInstance = DroneClass(context)
+            //Inicializa drone utilizando el contexto proporcionado
             droneInstance!!.drone = Drone(context)
+            //Inicializa controlTower con el mismo contexto
             droneInstance!!.controlTower = ControlTower(context)
+            //Devuelve la instancia
             return droneInstance!!
         }
 
+/*
+        /** Funcion para conectarse al dron mediante TCP */
         fun connect() {
+            //Comprueba si el dron esta conectado
             if (droneInstance!!.drone.isConnected) {
+                //En caso afirmativo, se desconecta
                 droneInstance!!.drone.disconnect()
             } else {
+                //Se define el parametro de conexion de tipo TCP pasandole como parametro la IP y el puerto donde
+                //esta ejecutandose el simulador
                 val connectionParams = ConnectionParameter.newTcpConnection(serverIP,serverPort, null)
+                //Se realiza la conexión al dron
                 droneInstance!!.drone.connect(connectionParams,  object : LinkListener {
+                    //Se escucha el canal y notifica al usario de los cambios producidos
                     override fun onLinkStateUpdated(connectionStatus: LinkConnectionStatus) {
                         alertUser("connectionStatusChanged: $connectionStatus")
-                        /*Log.d(
-                            "Connection",
-                            "Connection code: ${connectionStatus.statusCode}; Connection status $connectionStatus"
-                        )*/
                     }
 
                 })
             }
         }
-
+        /** Funcion para conectarse al dron mediante USB */
         fun connectUSB() {
+            //Comprueba si el dron esta conectado
             if (droneInstance!!.drone.isConnected) {
-                droneInstance!!.drone.disconnect()
+                droneInstance!!.drone.disconnect() //En caso afirmativo, desconecta el dron
             } else {
+                //Se define el parametro de conexion de tipo USB y se pasa como parametro la velocidad de transmision
                 val connectionParams = ConnectionParameter.newUsbConnection(usbBaudRate,null)
+                //Se realiza la conexión al dron
                 droneInstance!!.drone.connect(connectionParams, object : LinkListener {
                     override fun onLinkStateUpdated(connectionStatus: LinkConnectionStatus) {
+                        //Se informa al usuario de los cambios que se producen en el canal
                         alertUser("connectionStatusChanged: $connectionStatus")
-                        /*Log.d(
-                            "Connection",
-                            "Connection code: ${connectionStatus.statusCode}; Connection status $connectionStatus"
-                        )*/
                     }
                 })
-            }
-        }
-
-        fun arm() {
-            val vehicleState = droneInstance!!.drone.getAttribute<State>(AttributeType.STATE)
-            if (vehicleState.isFlying) {
-                // RTL
-                VehicleApi.getApi(droneInstance!!.drone).setVehicleMode(VehicleMode.COPTER_RTL, object : AbstractCommandListener() {
-                    override fun onSuccess() {
-                        //alertUser("Vehicle mode change successful.")
-                    }
-                    override fun onError(executionError: Int) {
-                        //alertUser("Vehicle mode change failed: $executionError")
-                    }
-                    override fun onTimeout() {
-                        //alertUser("Vehicle mode change timed out.")
-                    }
-                })
-            } else if (vehicleState.isArmed) {
-                // Take off
-                ControlApi.getApi(droneInstance!!.drone).takeoff(7.0, object : AbstractCommandListener() {
-                    override fun onSuccess() {
-                        //alertUser("Taking off...")
-                    }
-                    override fun onError(i: Int) {
-                        //alertUser("Unable to take off: Error number $i.")
-                    }
-                    override fun onTimeout() {
-                        //alertUser("Take off time out.")
-                    }
-                })
-            } else if (!vehicleState.isConnected) {
-                // Need to connect first
-                alertUser("Connect to a drone first")
-            } else if (vehicleState.isConnected && !vehicleState.isArmed) {
-                // Arm
-                ControlApi.getApi(droneInstance!!.drone).enableManualControl(true
-                ) { isEnabled ->
-                    if (isEnabled) {
-                        VehicleApi.getApi(droneInstance!!.drone)
-                            .arm(true, false, object : SimpleCommandListener() {
-                                override fun onError(executionError: Int) {
-                                    //alertUser("Unable to arm vehicle : Error number $executionError.")
-                                }
-
-                                override fun onTimeout() {
-                                    //alertUser("Arming operation timed out.")
-                                }
-
-                                override fun onSuccess() {
-                                    //alertUser("Armed")
-                                }
-                            })
-                    }
-                }
-            }
-        }
-
-/*/
-        fun moveInDirection(direction: String, velocity: Float) = GlobalScope.launch {
-            while (isActive) {
-                moveDrone(direction, velocity)
-                delay(100)
             }
         }*/
 
+        /**
+         * Conecta el dron con la aplicacion según el tipo de conexión requerido
+         * @param isUSBConnection true si se quiere conectar mediante USB
+         * false si se quiere conectar mediante TCP
+         */
+        fun connect(isUSBConnection: Boolean = false) {
+            //Se asegura de que droneInstance no sea nulo
+            droneInstance?.let { instance ->
+                if (instance.drone.isConnected) {
+                    instance.drone.disconnect()
+                } else {
+                    val connectionParams = if (isUSBConnection) {
+                        ConnectionParameter.newUsbConnection(usbBaudRate, null)
+                    } else {
+                        ConnectionParameter.newTcpConnection(serverIP, serverPort, null)
+                    }
+                    instance.drone.connect(connectionParams, object : LinkListener {
+                        override fun onLinkStateUpdated(connectionStatus: LinkConnectionStatus) {
+                            Log.d("DRONE_CONNECTION", "connectionStatusChanged: $connectionStatus")
+                        }
+                    })
+                }
+                //Se maneja la excepcion en caso de ser nulo y se avisa al usuario
+            } ?: alertUser("Drone instance is not initialized.")
+        }
+
+        /**
+         * Realiza los comandos basicos: arm, take off, RTL segun el estado del dron
+         */
+        fun arm() {
+            val vehicleState = droneInstance?.drone?.getAttribute<State>(AttributeType.STATE) //Obtiene el estado del dron
+            when {
+                vehicleState?.isFlying == true -> handleFlyingState()
+                vehicleState?.isArmed == true -> handleArmedState()
+                vehicleState?.isConnected == false-> alertUser("Connect to a drone first")
+                vehicleState?.isConnected == true && !vehicleState.isArmed -> handleConnectedState()
+                else -> Log.e("DRONE_ERROR", "Unhandled drone state.")
+            }
+        }
+
+        /** RTL */
+        private fun handleFlyingState(){
+            VehicleApi.getApi(droneInstance?.drone).setVehicleMode(VehicleMode.COPTER_RTL, object : AbstractCommandListener() {
+                override fun onSuccess() {
+                    Log.d("DRONE_STATUS", "Returning to launch position.")
+                }
+                override fun onError(executionError: Int) {
+                    Log.e("DRONE_ERROR", "Error returning to launch: $executionError")
+                }
+                override fun onTimeout() {
+                    Log.w("DRONE_TIMEOUT", "Operation timed out. Check connection.")
+                }
+            })
+        }
+
+        /** Take off */
+        private fun handleArmedState(){
+            ControlApi.getApi(droneInstance?.drone).takeoff(TAKEOFF_ALTITUDE, object : AbstractCommandListener() {
+                override fun onSuccess() {
+                    Log.d("DRONE_STATUS", "Taking off...")
+                }
+                override fun onError(i: Int) {
+                    Log.e("DRONE_ERROR", "Unable to take off. Error number: $i.")
+                }
+                override fun onTimeout() {
+                    Log.w("DRONE_TIMEOUT", "Take off timed out. Check connection.")
+                }
+            })
+        }
+
+        /** Arm */
+        private fun handleConnectedState(){
+            //Habiltar el control manual antes de armar
+            ControlApi.getApi(droneInstance?.drone).enableManualControl(true
+            ) { isEnabled ->
+                if (isEnabled) {
+                    VehicleApi.getApi(droneInstance?.drone)
+                        .arm(true, false, object : SimpleCommandListener() {
+                            override fun onError(executionError: Int) {
+                                Log.e("DRONE_ERROR", "Error arming the drone: $executionError.")
+                            }
+                            override fun onTimeout() {
+                                Log.w("DRONE_TIMEOUT","Arming operation timed out. Check connection.")
+                            }
+                            override fun onSuccess() {
+                                Log.d("DRONE_STATUS", "Drone is armed.")
+                            }
+                        })
+                }else{
+                    Log.e("DRONE_ERROR", "Unable to enable manual control for arming.")
+                }
+            }
+        }
+
+        /**
+         * Define un objeto Runnable que contiene la lógica para mover el dron en una dirección
+         */
         private val runnableMoveDirection = object : Runnable {
             override fun run() {
+                // Comprueba si se ha establecido una dirección
                 if (currentDirection != null) {
-                    moveDrone(currentDirection!!, currentVelocity)
-                    handler.postDelayed(this, 100) // Lanzar el Runnable nuevamente después de 100 ms
+                    // Mueve el dron en la dirección especificada
+                    moveDrone(currentDirection!!)
+                    // Vuelve a ejecutar Runnable tras 1 segundo
+                    handler.postDelayed(this, 1000)
                 }
             }
         }
 
-        private val runnableMoveDirectionHeading = object : Runnable {
-            override fun run() {
-                if (currentDirection != null) {
-                    moveDroneSameHeading(currentDirection!!, currentVelocity)
-                    handler.postDelayed(this, 100) // Lanzar el Runnable nuevamente después de 100 ms
-                }
-            }
-        }
-
-        fun moveInDirection(direction: String, velocity: Float) {
+        /**
+         * Establece la dirección en la que se desea mover el dron y comienza el movimiento
+         * @param direction: dirección en la que se desea mover el dron
+         */
+        fun moveInDirection(direction: String) {
+            // Establece la dirección actual a la especificada
             currentDirection = direction
-            currentVelocity = velocity
+            // Planifica la ejecución del Runnable para iniciar el movimiento del dron
             handler.post(runnableMoveDirection)
-        }
-
-        fun moveInDirectionHeading(direction: String, velocity: Float) {
-            currentDirection = direction
-            currentVelocity = velocity
-            handler.post(runnableMoveDirectionHeading)
         }
 
         fun stopMoving() {
             handler.removeCallbacks(runnableMoveDirection)
             currentDirection = null
-            currentVelocity = 0f
         }
 
         fun onDestroy() {
-            handler.removeCallbacksAndMessages(null) // Limpia todos los mensajes y Runnable pendientes
+            handler.removeCallbacksAndMessages(null) // Limpia todos los mensajes y Runnables
         }
 
-        fun moveDrone(direction: String, velocity: Float) {
+        /**
+         * Mueve el dron según los puntos cardinales especificados.
+         * @param direction La dirección cardinal en la que se desea mover el dron.
+         * Valores posibles: "stop", "north", "south", "east", "west", "northWest", "northEast", "southEast", "southWest".
+         */
+        fun moveDrone(direction: String) {
+            //Definir el tipo de mensaje necesario para mover el dron
             val msg = com.MAVLink.common.msg_set_position_target_local_ned()
+            //Establecer los valores iniciales para el mensaje
             msg.time_boot_ms = 0
             msg.target_system = 0
             msg.target_component = 0
             msg.coordinate_frame = 1
             msg.type_mask = 0b0000111111000111
 
+            //Evaluar la direccion especificada para establecer la velocidad necesaria en cada eje
             when (direction) {
                 "stop" -> {
                     msg.vx = 0f
                     msg.vy = 0f
                 }
                 "north" -> {
-                    msg.vx = velocity
+                    msg.vx = VEL_DRONE
                     msg.vy = 0f
                 }
                 "south" -> {
-                    msg.vx = - velocity
+                    msg.vx = - VEL_DRONE
                     msg.vy = 0f
                 }
                 "east" -> {
                     msg.vx = 0f
-                    msg.vy = velocity
+                    msg.vy = VEL_DRONE
                 }
                 "west" -> {
                     msg.vx = 0f
-                    msg.vy = - velocity
+                    msg.vy = - VEL_DRONE
                 }
                 "northWest" -> {
-                    msg.vx = velocity
-                    msg.vy = - velocity
+                    msg.vx = VEL_DRONE
+                    msg.vy = - VEL_DRONE
                 }
                 "northEast" -> {
-                    msg.vx = velocity
-                    msg.vy = velocity
+                    msg.vx = VEL_DRONE
+                    msg.vy = VEL_DRONE
                 }
                 "southEast" -> {
-                    msg.vx = - velocity
-                    msg.vy = velocity
+                    msg.vx = - VEL_DRONE
+                    msg.vy = VEL_DRONE
                 }
                 "southWest" -> {
-                    msg.vx = - velocity
-                    msg.vy = - velocity
+                    msg.vx = - VEL_DRONE
+                    msg.vy = - VEL_DRONE
                 }
             }
+            //Definir los valores adicionales del mensaje
             msg.vz = 0f
             msg.x = 0f
             msg.y = 0f
@@ -241,145 +292,77 @@ class DroneClass private constructor(){
             msg.yaw = 0f
             msg.yaw_rate = 0f
 
+            //Envolver el mensaje para su envío
             val mavMsg = MavlinkMessageWrapper(msg)
-            ExperimentalApi.getApi(droneInstance!!.drone).sendMavlinkMessage(mavMsg)
-        }
-
-
-        fun moveDroneSameHeading(direction: String, velocity: Float) {
-            val msg = com.MAVLink.common.msg_command_long()
-            msg.target_system = 0
-            msg.target_component = 0
-            msg.command = MAV_CMD_CONDITION_YAW
-            msg.param1 = 0f  // Ángulo absoluto en radianes
-            msg.param2 = 0f //Velocidad de giro
-
-            when (direction) {
-                "stop" -> {
-                    moveDrone("stop", velocity)
-                }
-                "forward" -> {
-                    moveDrone("north", velocity)
-                }
-                "backward" -> {
-                    moveDrone("south", velocity)
-                }
-                "right" -> {
-                    moveDrone("east", velocity)
-                }
-                "left" -> {
-                    moveDrone("west", velocity)
-                }
+            //Comprobar si el dron esta volando
+            if (droneInstance?.drone?.getAttribute<State>(AttributeType.STATE)?.isFlying == true) {
+                //Si es asi, enviar el comando al dron
+                ExperimentalApi.getApi(droneInstance?.drone).sendMavlinkMessage(mavMsg)
+                Log.d("DRONE_MOVEMENT", "Command sent. Direction: $direction at velocity: $VEL_DRONE m/s")
+            }else{
+                Log.e("DRONE_MOVEMENT_ERROR", "Attempted to move the drone while not flying. Direction: $direction at velocity: $VEL_DRONE m/s")
             }
-
-            val mavMsg = MavlinkMessageWrapper(msg)
-            ExperimentalApi.getApi(droneInstance!!.drone).sendMavlinkMessage(mavMsg)
-
-
         }
-
-        /*
-        fun moveDrone(direction: String, velocity: Float) {
-    val msg = com.MAVLink.common.msg_set_position_target_global_int()
-    msg.time_boot_ms = 0
-    msg.target_system = 0
-    msg.target_component = 0
-    msg.coordinate_frame = MAV_FRAME_GLOBAL_RELATIVE_ALT_INT
-    msg.type_mask = 0b0000111111000111
-
-    val yaw = getYaw()  // Obtener el encabezado actual del dron
-
-    when (direction) {
-        "stop" -> {
-            msg.vx = 0
-            msg.vy = 0
-        }
-        "forward" -> {
-            msg.vx = (velocity * 100).toInt()  // Convertir a centímetros por segundo
-            msg.vy = 0
-        }
-        "backward" -> {
-            msg.vx = (-velocity * 100).toInt()  // Convertir a centímetros por segundo
-            msg.vy = 0
-        }
-        "right" -> {
-            msg.vx = 0
-            msg.vy = (velocity * 100).toInt()  // Convertir a centímetros por segundo
-        }
-        "left" -> {
-            msg.vx = 0
-            msg.vy = (-velocity * 100).toInt()  // Convertir a centímetros por segundo
-        }
-    }
-
-    msg.vz = 0
-    msg.x = 0
-    msg.y = 0
-    msg.z = 0
-    msg.afx = 0
-    msg.afy = 0
-    msg.afz = 0
-    msg.yaw = (yaw * 100).toInt()  // Convertir a centigrados (100 = 1 grado)
-    msg.yaw_rate = 0
-
-    val mavMsg = MavlinkMessageWrapper(msg)
-    ExperimentalApi.getApi(droneInstance!!.drone).sendMavlinkMessage(mavMsg)
-}
-
-         */
 
         fun alertUser(message: String?) {
-            //Toast.makeText(droneInstance!!.context?.applicationContext, message, Toast.LENGTH_LONG).show()
+            Toast.makeText(droneInstance!!.context?.applicationContext, message, Toast.LENGTH_LONG).show()
         }
 
+        /**
+         * Funcion para actualizar el texto del boton de conexió¡on
+         * @param isConnected Un booleano que indica si el dispositivo está conectado o no
+         * @param connectBtn El botón que se desea actualizar
+         */
         fun updateConnectedButton(isConnected: Boolean, connectBtn: Button) {
+            // Comprueba si el dispositivo esta conectado
             if (isConnected) {
+                // Cambia el texto del botón a "Disconnect" para indicar que al pulsarlo se desconectaría el dispositivo
                 connectBtn.text = "Disconnect"
             } else {
+                // Cambia el texto del botón a "Connect" para indicar que al pulsarlo se conectaría el dispositivo
                 connectBtn.text = "Connect"
             }
         }
 
+
         private fun updateArmButton(armBtn: Button) {
-            val vehicleState = droneInstance!!.drone.getAttribute<State>(AttributeType.STATE)
-            if (!droneInstance!!.drone.isConnected) {
+            val vehicleState = droneInstance?.drone?.getAttribute<State>(AttributeType.STATE)
+            if (droneInstance?.drone?.isConnected == false) {
                 armBtn.visibility = View.INVISIBLE
             } else {
                 armBtn.visibility = View.VISIBLE
             }
 
-            if (vehicleState.isFlying) {
+            if (vehicleState?.isFlying == true) {
                 // RTL
                 armBtn.text = "RTL"
-            } else if (vehicleState.isArmed) {
+            } else if (vehicleState?.isArmed  == true) {
                 // Take off
                 armBtn.text = "TAKE OFF"
-            } else if (vehicleState.isConnected && !vehicleState.isArmed) {
+            } else if (vehicleState?.isConnected == true && !vehicleState.isArmed) {
                 // Connected but not Armed
                 armBtn.text = "ARM"
             }
         }
 
-        fun droneEvent(event: String?, extras: Bundle?, armBtn: Button, connectBtn: Button){
+        /**
+         * Reacciona y gestiona diferentes eventos relacionados con el estado del dron
+         * @param event evento del dron con el que se va a trabajar
+         * @param armBtn Boton para realizar los comandos básicos del dron
+         * @param connectBtn Boton para realizar la conexion y desconexion del dron
+         */
+        fun droneEvent(event: String?, armBtn: Button, connectBtn: Button){
             when (event) {
-                AttributeEvent.STATE_CONNECTED -> {
-                    alertUser("Drone Connected")
-                    updateConnectedButton(droneInstance!!.drone.isConnected, connectBtn)
+                //Si el dron se conecta o se desconecta se actualiza el nombre del boton connect
+                AttributeEvent.STATE_CONNECTED, AttributeEvent.STATE_DISCONNECTED -> {
+                    val isConnected = droneInstance?.drone?.isConnected ?: false
+                    updateConnectedButton(isConnected, connectBtn)
                 }
-                AttributeEvent.STATE_DISCONNECTED -> {
-                    alertUser("Drone Disconnected")
-                    updateConnectedButton(droneInstance!!.drone.isConnected, connectBtn)
-                }
-                AttributeEvent.STATE_UPDATED -> {
+                //Si el dron se produce un cambio de estado, si se arma o si se cambia el modo de vehiculo,
+                // se actualiza el nombre del boton arm
+                AttributeEvent.STATE_UPDATED, AttributeEvent.STATE_ARMING, AttributeEvent.STATE_VEHICLE_MODE -> {
                     updateArmButton(armBtn)
                 }
-                AttributeEvent.STATE_ARMING -> {
-                    updateArmButton(armBtn)
-                }
-                AttributeEvent.STATE_VEHICLE_MODE -> {
-                    updateArmButton(armBtn)
-                }
-                else -> {}
             }
         }
     }

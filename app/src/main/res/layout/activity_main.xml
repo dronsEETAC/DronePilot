@@ -23,28 +23,31 @@
             android:src="@drawable/logo" />
     </androidx.appcompat.widget.Toolbar>
 
-    <Button
-        android:id="@+id/gestureBtn"
-        android:layout_width="280dp"
-        android:layout_height="180dp"
-        android:text="Gesture Recognizer"
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.496"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.813" />
+        android:gravity="center"
+        app:layout_constraintTop_toBottomOf="@+id/mainToolBar">
 
-    <Button
-        android:id="@+id/movementsBtn"
-        android:layout_width="280dp"
-        android:layout_height="180dp"
-        android:layout_marginBottom="5dp"
-        android:text="Movement changes"
-        app:layout_constraintBottom_toTopOf="@+id/gestureBtn"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.496"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.811" />
+        <Button
+            android:id="@+id/gestureBtn"
+            android:layout_width="280dp"
+            android:layout_height="180dp"
+            android:text="Gesture Recognizer"
+            android:layout_margin="10dp"/>
+
+        <Button
+            android:id="@+id/movementsBtn"
+            android:layout_width="280dp"
+            android:layout_height="180dp"
+            android:layout_marginBottom="5dp"
+            android:text="Movement changes"
+            android:layout_margin="10dp"/>
+
+    </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

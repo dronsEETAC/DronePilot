@@ -6,52 +6,115 @@
     android:layout_height="match_parent"
     tools:context=".PhoneMovementsActivity">
 
-    <Button
-        android:id="@+id/connectBtn"
-        android:layout_width="wrap_content"
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbarM"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:layout_alignParentTop="true"
+        android:background="@color/light_gray"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/batteryPercentageTxtM"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:gravity="center_vertical"
+                android:text="0%"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/altitudeValueTxtM"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:gravity="center_vertical"
+                android:text="0m"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/velocityValueTxtM"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:gravity="center_vertical"
+                android:text="0m/s"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/drone_toolbarM"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="right"
+            android:src="@drawable/drone" />
+    </androidx.appcompat.widget.Toolbar>
+
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Connect"
+        android:orientation="vertical"
+        android:padding="40dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.123"
-        tools:ignore="DuplicateClickableBoundsCheck" />
+        app:layout_constraintTop_toBottomOf="@+id/toolbarM">
 
-    <Button
-        android:id="@+id/armBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Arm"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.493"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.325" />
+        <TextView
+            android:id="@+id/resTextView"
+            android:layout_width="225dp"
+            android:layout_height="50dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="15dp"
+            android:text="Movement"
+            android:textAlignment="center"
+            android:textSize="34sp" />
 
-    <Button
-        android:id="@+id/stopBtn"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Stop"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.493"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.539" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/resTextView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="             "
-        android:textSize="34sp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.877" />
+            <Button
+                android:id="@+id/connectBtn"
+                android:layout_width="180dp"
+                android:layout_height="130dp"
+                android:layout_weight="1"
+                android:text="Connect"
+                android:layout_marginBottom="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"/>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <Button
+                android:id="@+id/armBtn"
+                android:layout_width="180dp"
+                android:layout_height="130dp"
+                android:layout_weight="1"
+                android:text="Arm"
+                android:layout_marginBottom="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"/>
+
+            <Button
+                android:id="@+id/stopBtn"
+                android:layout_width="180dp"
+                android:layout_height="130dp"
+                android:layout_weight="1"
+                android:text="Stop"
+                android:layout_marginBottom="10dp"
+                android:layout_marginTop="10dp"
+                android:layout_marginStart="10dp"
+                android:layout_marginEnd="10dp"/>
+        </LinearLayout>
+    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
