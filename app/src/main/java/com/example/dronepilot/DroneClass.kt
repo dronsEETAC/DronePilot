@@ -33,16 +33,16 @@ class DroneClass private constructor(context: Context){
 
     companion object{
         private var droneInstance : DroneClass? = null
-        //private const val serverIP: String = "172.20.10.3" //Internet movil
+        private const val serverIP: String = "172.20.10.3" //Internet movil
         //private const val serverIP: String = "192.168.0.128" //Casa
-        private const val serverIP: String = "192.168.0.18" //Piso
+        //private const val serverIP: String = "192.168.0.18" //Piso
         private const val usbBaudRate : Int = 57600
         private const val serverPort : Int = 5763
         val handler = Handler()
         var currentDirection: String? = null
         //var currentVelocity: Float = 0f
         private const val TAKEOFF_ALTITUDE = 7.0
-        private const val VEL_DRONE = 5f
+        private const val VEL_DRONE = 1f
 
         /**
          * Funcion que proporciona una instancia de la clase DroneClass
@@ -58,45 +58,6 @@ class DroneClass private constructor(context: Context){
             //Devuelve la instancia
             return droneInstance!!
         }
-
-/*
-        /** Funcion para conectarse al dron mediante TCP */
-        fun connect() {
-            //Comprueba si el dron esta conectado
-            if (droneInstance!!.drone.isConnected) {
-                //En caso afirmativo, se desconecta
-                droneInstance!!.drone.disconnect()
-            } else {
-                //Se define el parametro de conexion de tipo TCP pasandole como parametro la IP y el puerto donde
-                //esta ejecutandose el simulador
-                val connectionParams = ConnectionParameter.newTcpConnection(serverIP,serverPort, null)
-                //Se realiza la conexión al dron
-                droneInstance!!.drone.connect(connectionParams,  object : LinkListener {
-                    //Se escucha el canal y notifica al usario de los cambios producidos
-                    override fun onLinkStateUpdated(connectionStatus: LinkConnectionStatus) {
-                        alertUser("connectionStatusChanged: $connectionStatus")
-                    }
-
-                })
-            }
-        }
-        /** Funcion para conectarse al dron mediante USB */
-        fun connectUSB() {
-            //Comprueba si el dron esta conectado
-            if (droneInstance!!.drone.isConnected) {
-                droneInstance!!.drone.disconnect() //En caso afirmativo, desconecta el dron
-            } else {
-                //Se define el parametro de conexion de tipo USB y se pasa como parametro la velocidad de transmision
-                val connectionParams = ConnectionParameter.newUsbConnection(usbBaudRate,null)
-                //Se realiza la conexión al dron
-                droneInstance!!.drone.connect(connectionParams, object : LinkListener {
-                    override fun onLinkStateUpdated(connectionStatus: LinkConnectionStatus) {
-                        //Se informa al usuario de los cambios que se producen en el canal
-                        alertUser("connectionStatusChanged: $connectionStatus")
-                    }
-                })
-            }
-        }*/
 
         /**
          * Conecta el dron con la aplicacion según el tipo de conexión requerido
@@ -218,13 +179,19 @@ class DroneClass private constructor(context: Context){
             handler.post(runnableMoveDirection)
         }
 
+        /**
+         * Funcion que para el runnable eliminando los callbacks
+         */
         fun stopMoving() {
             handler.removeCallbacks(runnableMoveDirection)
             currentDirection = null
         }
 
+        /**
+         * Funcion que limpia todos los mensajes y Runnables
+         */
         fun onDestroy() {
-            handler.removeCallbacksAndMessages(null) // Limpia todos los mensajes y Runnables
+            handler.removeCallbacksAndMessages(null)
         }
 
         /**
@@ -233,6 +200,7 @@ class DroneClass private constructor(context: Context){
          * Valores posibles: "stop", "north", "south", "east", "west", "northWest", "northEast", "southEast", "southWest".
          */
         fun moveDrone(direction: String) {
+            val VEL_DRONE_DIAG = VEL_DRONE / Math.sqrt(2.0).toFloat()
             //Definir el tipo de mensaje necesario para mover el dron
             val msg = com.MAVLink.common.msg_set_position_target_local_ned()
             //Establecer los valores iniciales para el mensaje
@@ -265,20 +233,20 @@ class DroneClass private constructor(context: Context){
                     msg.vy = - VEL_DRONE
                 }
                 "northWest" -> {
-                    msg.vx = VEL_DRONE
-                    msg.vy = - VEL_DRONE
+                    msg.vx = VEL_DRONE_DIAG
+                    msg.vy = - VEL_DRONE_DIAG
                 }
                 "northEast" -> {
-                    msg.vx = VEL_DRONE
-                    msg.vy = VEL_DRONE
+                    msg.vx = VEL_DRONE_DIAG
+                    msg.vy = VEL_DRONE_DIAG
                 }
                 "southEast" -> {
-                    msg.vx = - VEL_DRONE
-                    msg.vy = VEL_DRONE
+                    msg.vx = - VEL_DRONE_DIAG
+                    msg.vy = VEL_DRONE_DIAG
                 }
                 "southWest" -> {
-                    msg.vx = - VEL_DRONE
-                    msg.vy = - VEL_DRONE
+                    msg.vx = - VEL_DRONE_DIAG
+                    msg.vy = - VEL_DRONE_DIAG
                 }
             }
             //Definir los valores adicionales del mensaje
@@ -309,30 +277,28 @@ class DroneClass private constructor(context: Context){
         }
 
         /**
-         * Funcion para actualizar el texto del boton de conexió¡on
+         * Funcion para actualizar el texto del boton de conexion
          * @param isConnected Un booleano que indica si el dispositivo está conectado o no
          * @param connectBtn El botón que se desea actualizar
          */
         fun updateConnectedButton(isConnected: Boolean, connectBtn: Button) {
             // Comprueba si el dispositivo esta conectado
             if (isConnected) {
-                // Cambia el texto del botón a "Disconnect" para indicar que al pulsarlo se desconectaría el dispositivo
+                // Cambia el texto del boton a "Disconnect" para indicar que al pulsarlo se desconectaría el dispositivo
                 connectBtn.text = "Disconnect"
             } else {
-                // Cambia el texto del botón a "Connect" para indicar que al pulsarlo se conectaría el dispositivo
+                // Cambia el texto del boton a "Connect" para indicar que al pulsarlo se conectaría el dispositivo
                 connectBtn.text = "Connect"
             }
         }
 
-
+        /**
+         * Funcion para actualizar el texto del boton de conexion
+         * @param armBtn  El botón que se desea actualizar
+         */
         private fun updateArmButton(armBtn: Button) {
             val vehicleState = droneInstance?.drone?.getAttribute<State>(AttributeType.STATE)
-            if (droneInstance?.drone?.isConnected == false) {
-                armBtn.visibility = View.INVISIBLE
-            } else {
-                armBtn.visibility = View.VISIBLE
-            }
-
+            //Comprueba el estado del vuelo para cambiar el nombre del botón
             if (vehicleState?.isFlying == true) {
                 // RTL
                 armBtn.text = "RTL"

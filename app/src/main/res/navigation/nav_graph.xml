@@ -18,8 +18,5 @@
         android:name="com.example.dronepilot.gestureFragment.CameraFragment"
         android:label="fragment_camera"
         tools:layout="@layout/fragment_camera" >
-        <action
-            android:id="@+id/action_cameraFragment_to_permissionsFragment"
-            app:destination="@id/permissionsFragment" />
     </fragment>
 </navigation>

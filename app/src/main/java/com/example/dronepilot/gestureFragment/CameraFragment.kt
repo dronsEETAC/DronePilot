@@ -56,7 +56,6 @@ class CameraFragment : Fragment(), GestureUtils.GestureRecognizerListener, Drone
 
     companion object {
         private const val TAG = "Hand gesture recognizer"
-        private const val VEL_DRONE = 5f
     }
 
     /**
@@ -131,7 +130,7 @@ class CameraFragment : Fragment(), GestureUtils.GestureRecognizerListener, Drone
                 // Vincula los casos de uso de la camara al ciclo de vida de una actividad/fragmento
                 cameraProvider = cameraProviderFuture.get()
 
-                // Set the camera use cases ->
+                // Set the camera use cases
                 setCameraUseCases()
             }, ContextCompat.getMainExecutor(requireContext())
         )
@@ -274,15 +273,22 @@ class CameraFragment : Fragment(), GestureUtils.GestureRecognizerListener, Drone
         }
     }
 
+    /**
+     * Funcion para obtener el porcentaje de bateria del dron
+     */
     private fun batteryPercentage() : Int {
         return if (droneClient.drone.isConnected) {
             val vehicleBattery = droneClient.drone.getAttribute<Battery>(AttributeType.BATTERY)
             (vehicleBattery.batteryRemain).toInt()
         } else{
+            //Si el dron no esta conectado devuelve 0
             0
         }
     }
 
+    /**
+     * Funcion para obtener la velocidad del dron
+     */
     private fun velocity() : Double {
         return if (droneClient.drone.isConnected) {
             val vehicleVelocity = droneClient.drone.getAttribute<Speed>(AttributeType.SPEED)
@@ -292,6 +298,9 @@ class CameraFragment : Fragment(), GestureUtils.GestureRecognizerListener, Drone
         }
     }
 
+    /**
+     * Funcion para obtener la altitud del dron
+     */
     private fun altitude() : Double {
         return if (droneClient.drone.isConnected) {
             val vehicleAltitude = droneClient.drone.getAttribute<Altitude>(AttributeType.ALTITUDE)
@@ -301,26 +310,40 @@ class CameraFragment : Fragment(), GestureUtils.GestureRecognizerListener, Drone
         }
     }
 
+    /**
+     * Runnable para actualizar los parámetros del dron cada 1s
+     */
     private val parametersUpdateRunnable = object : Runnable {
         override fun run() {
             val batteryPercentage = batteryPercentage()
-            droneParametersStatusListener?.onBatteryPercentageChanged(batteryPercentage)
+            //Obtiene y notifica el porcentaje de bateria
+            droneParametersStatusListener?.onBatteryPercentageChanged(batteryPercentage, droneClient.drone.isConnected)
+            //Obtiene y notifica la velocidad
             val velocity = velocity()
             droneParametersStatusListener?.onVelocityChanged(velocity)
+            //Obtiene y notifica la altitud
             val altitude = altitude()
             droneParametersStatusListener?.onAltitudeChanged(altitude)
+            //Programa la ejecución del runnable en 1s.
             parametersUpdateHandler.postDelayed(this, 1000)
         }
     }
 
+    /**
+     * Función que se ejecuta cuando ocurre un error
+     */
     override fun onError(error: String, errorCode: Int) {
         activity?.runOnUiThread {
             Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show()
         }
     }
 
+    /**
+     * Función que se ejecuta al reanudar el fragment
+     */
     override fun onResume() {
         super.onResume()
+        //Comienza a ejecutar el runnable de actualización de los parametros del dron
         parametersUpdateHandler.postDelayed(parametersUpdateRunnable, 0)
         backgroundExecutor.execute {
             if (gestureRecognizerClass.isClosed()) {
@@ -329,8 +352,12 @@ class CameraFragment : Fragment(), GestureUtils.GestureRecognizerListener, Drone
         }
     }
 
+    /**
+     * Función que se ejecuta al pausar el fragment
+     */
     override fun onPause() {
         super.onPause()
+        // Elimina las llamadas del Runnable de actualización de parámetros
         parametersUpdateHandler.removeCallbacks(parametersUpdateRunnable)
 
         if (this::gestureRecognizerClass.isInitialized) {
@@ -339,6 +366,9 @@ class CameraFragment : Fragment(), GestureUtils.GestureRecognizerListener, Drone
         DroneClass.stopMoving()
     }
 
+    /**
+     * Función que se ejecuta al destruir la vista
+     */
     override fun onDestroyView() {
         super.onDestroyView()
         DroneClass.onDestroy()
@@ -349,15 +379,22 @@ class CameraFragment : Fragment(), GestureUtils.GestureRecognizerListener, Drone
             DroneClass.updateConnectedButton(false,connectGesBtn)
         }
 
+        //Cierra el ejecutor en segundo plano
         backgroundExecutor.shutdown()
         backgroundExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS)
     }
 
+    /**
+     * Función que se ejecuta al iniciar el fragment
+     */
     override fun onStart() {
         super.onStart()
         droneClient.controlTower.connect(this)
     }
 
+    /**
+     * Función que se ejecuta al detener el fragment
+     */
     override fun onStop() {
         super.onStop()
         if (droneClient.drone.isConnected) {
@@ -369,36 +406,60 @@ class CameraFragment : Fragment(), GestureUtils.GestureRecognizerListener, Drone
         droneClient.controlTower.disconnect()
     }
 
+    /**
+     * Función para manejar los eventos del dron
+     */
     override fun onDroneEvent(event: String?, extras: Bundle?) {
         DroneClass.droneEvent(event,armGesBtn, connectGesBtn)
     }
 
+    /**
+     * Función para manejar interrupciones del servicio del dron
+     */
     override fun onDroneServiceInterrupted(errorMsg: String?) {
         Log.d("DroneServiceInterrupted CameraFragment", "$errorMsg")
     }
 
+    /**
+     * Función que se ejecuta cuando se conecta la aplicación a la torre
+     */
     override fun onTowerConnected() {
         droneClient.controlTower.registerDrone(droneClient.drone, handler)
         droneClient.drone.registerDroneListener(this)
     }
 
+    /**
+     * Función que se ejecuta cuando se desconecta la aplicación a la torre
+     */
     override fun onTowerDisconnected() {
         droneClient.controlTower.unregisterDrone(droneClient.drone)
         droneClient.drone.unregisterDroneListener(this)
     }
 
+    /**
+     * Función para conectar el dron
+     */
     private fun connect() {
         DroneClass.connect(false)
     }
 
+    /**
+     * Función para detener el dron
+     */
      fun stop() {
          DroneClass.stopMoving()
      }
 
+    /**
+     * Función para cambiar el estado del dron
+     */
     private fun arm(){
         DroneClass.arm()
     }
 
+    /**
+     * Función que se ejecuta al pulsar el botón atras.
+     */
      fun onBackPressed(){
         val intent = Intent(requireContext(), MainActivity::class.java)
         startActivity(intent)

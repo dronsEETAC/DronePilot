@@ -3,6 +3,7 @@ package com.example.dronepilot
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.graphics.Color
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -93,23 +94,42 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
         highTextViewM = findViewById(R.id.altitudeValueTxtM)
     }
 
+    /**
+     * Runnable que muestra y actualiza los parámetros del dron
+     */
     private val parametersUpdateRunnable = object : Runnable {
         override fun run() {
+            //Comprueba si el dron esta conectado
             if (droneClient.drone.isConnected) {
                 val vehicleBattery = droneClient.drone.getAttribute<Battery>(AttributeType.BATTERY)
+                //Actualiza la información de la bateria
                 batteryPercentageTextViewM.text = "${vehicleBattery.batteryRemain.toInt()}%"
 
+                // Si el porcentaje es menor al 70, cambia el color de la letra a rojo
+                if (droneClient.drone.isConnected && vehicleBattery.batteryRemain.toInt() < 70) {
+                    batteryPercentageTextViewM.setTextColor(Color.RED)
+                } else {
+                    //Si no, la letra se visualiza en negro
+                    batteryPercentageTextViewM.setTextColor(Color.BLACK)
+                }
+
+                //Actualiza la información de la velocidad
                 val vehicleVelocity = droneClient.drone.getAttribute<Speed>(AttributeType.SPEED)
                 velocityTextViewM.text = "${formatDecimalValue(vehicleVelocity.groundSpeed)} m/s"
 
+                //Actualiza la información de la altitud
                 val vehicleAltitude =
                     droneClient.drone.getAttribute<Altitude>(AttributeType.ALTITUDE)
                 highTextViewM.text = "${formatDecimalValue(vehicleAltitude.altitude / 100)}m"
             }
+            //Repite la ejecucion del runnable cada 1s.
             parametersUpdateHandler.postDelayed(this, 1000)
         }
     }
 
+    /**
+     * Función para mostrar un cuadro de dialogo con las instrucciones de uso
+     */
     private fun showImageDialog() {
         val imageDialog = AlertDialog.Builder(this)
         val inflater = this.layoutInflater
@@ -127,6 +147,9 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
         dialog.show()
     }
 
+    /**
+     * Funcion que para volver atras cuando pulsas el boton atras
+     */
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         if (item.itemId == android.R.id.home) {
             onBackPressed()
@@ -135,44 +158,74 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
         return super.onOptionsItemSelected(item)
     }
 
+    /**
+     * Funcion que formatea un valor decimal a un string
+     */
     private fun formatDecimalValue(value: Double): String {
         return String.format("%.2f", value)
     }
 
+    /**
+     * Funcion que para el dron
+     */
     private fun stopDrone() {
         DroneClass.moveInDirection("stop")
     }
 
+    /**
+     * Funcion que gestiona las acciones del dron: arm, takeoff, RTL
+     */
     private fun armDrone() {
         DroneClass.arm()
     }
 
+    /**
+     * Funcion que gestiona la conexion/desconenxion del dron
+     */
     private fun connectDrone() {
         DroneClass.connect(false)
     }
 
+    /**
+     * Funcion que maneja los eventos del dron
+     */
     override fun onDroneEvent(event: String?, extras: Bundle?) {
         DroneClass.droneEvent(event, armBtn, connectBtn)
     }
 
+    /**
+     * Funcion que maneja la interrupcion del servicio de dron
+     */
     override fun onDroneServiceInterrupted(errorMsg: String?) {
         Log.d("PhoneMovementsActivity", "Drone service interrumpted: $errorMsg")
     }
 
+    /**
+    * Funcion que maneja la accion cuando se conecta la torre
+    */
     override fun onTowerConnected() {
         droneClient.controlTower.registerDrone(droneClient.drone, handler)
         droneClient.drone.registerDroneListener(this)
     }
 
+    /**
+     * Funcion que maneja la accion cuando se desconecta la torre
+     */
     override fun onTowerDisconnected() {
         Log.d("PhoneMovementsActivity", "Tower disconnect")
     }
 
+    /**
+     * Función que se ejecuta al iniciar la activity
+     */
     override fun onStart() {
         super.onStart()
         droneClient.controlTower.connect(this)
     }
 
+    /**
+     * Función que se ejecuta al destruir la activity
+     */
     override fun onDestroy() {
         super.onDestroy()
         DroneClass.onDestroy()
@@ -184,6 +237,9 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
 
     }
 
+    /**
+     * Función que se ejecuta al detener la activity
+     */
     override fun onStop() {
         super.onStop()
         if (droneClient.drone.isConnected) {
@@ -195,11 +251,18 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
         droneClient.controlTower.disconnect()
 
     }
+
+    /**
+     * Función que se ejecuta al pausar el fragment
+     */
     override fun onResume() {
         super.onResume()
         parametersUpdateHandler.postDelayed(parametersUpdateRunnable, 0)
     }
 
+    /**
+     * Función que se ejecuta al pausar el fragment
+     */
     override fun onPause() {
         super.onPause()
         parametersUpdateHandler.removeCallbacks(parametersUpdateRunnable)
@@ -248,10 +311,15 @@ class PhoneMovementsActivity : AppCompatActivity(), SensorEventListener, DroneLi
         }
     }
 
-
+    /**
+     * Funcion que llama cuando cambia la precision del sensor (no se implementa en esta aplicacion)
+     */
     override fun onAccuracyChanged(p0: Sensor?, p1: Int) {
     }
 
+    /**
+     * Funcion que se ctiva cuando e presiona el boton atras
+     */
     override fun onBackPressed(){
         val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)

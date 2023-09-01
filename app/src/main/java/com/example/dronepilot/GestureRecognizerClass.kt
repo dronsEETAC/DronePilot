@@ -145,7 +145,7 @@ class GestureRecognizerClass(val context: Context, val gestureRecognizerListener
     companion object {
         val TAG = "GestureRecognizerHelper"
         //Se indica la path del modelo que se desea utilizar
-        private const val MP_RECOGNIZER_TASK = "gesture_recognizer_27.task"
+        private const val MP_RECOGNIZER_TASK = "31.task"
         const val DEFAULT_HAND_DETECTION_CONFIDENCE = 0.5F
         const val DEFAULT_HAND_TRACKING_CONFIDENCE = 0.5F
         const val DEFAULT_HAND_PRESENCE_CONFIDENCE = 0.5F

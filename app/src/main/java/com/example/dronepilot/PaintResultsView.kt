@@ -28,6 +28,9 @@ class PaintResultsView(context: Context?, attributeSet: AttributeSet?) : View(co
         initPaints()
     }
 
+    /**
+     * Funcion que realiza la configuracion inicial de las lineas y puntos
+     */
     private fun initPaints() {
         // Configuración del pincel para dibujar líneas
         linePaint.color = Color.BLUE
@@ -40,6 +43,9 @@ class PaintResultsView(context: Context?, attributeSet: AttributeSet?) : View(co
         pointPaint.style = Paint.Style.FILL //Se rellenan los puntos
     }
 
+    /**
+     * Funcion que dibuja las lineas y puntos en el canvas
+     */
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
         results?.let { gestureRecognizerResult ->
