@@ -31,11 +31,13 @@
                 android:gravity="center_vertical"
                 android:text="0%"
                 android:textSize="16sp"
+                android:textColor="@color/black"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"/>
             <TextView
                 android:id="@+id/altitudeValueTxt"
                 android:layout_width="wrap_content"
+                android:textColor="@color/black"
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
                 android:text="0m"
@@ -46,6 +48,7 @@
                 android:id="@+id/velocityValueTxt"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
+                android:textColor="@color/black"
                 android:gravity="center_vertical"
                 android:text="0m/s"
                 android:textSize="16sp"
