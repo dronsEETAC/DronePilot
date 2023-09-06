@@ -15,7 +15,7 @@ It includes:
 
 # Demo
 
-This video is a demo of the functionalities of the Mobile APP.
+This video is a demo of the functionalities of the Mobile APP:
 [Demo DronePilot](https://www.youtube.com/watch?v=EVA7vC1wVa4)
 
 The video explains the main functionalities of the application, details all the components it contains, such as buttons, toolbar, iconographic details, as well as the different screens that compose it. Finally, a demonstration of how the application works in a simulation environment using Mission Planner.
