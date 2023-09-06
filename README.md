@@ -6,12 +6,12 @@ It includes:
 
 - Control of the drone through gesture recognition: A model of 9 gestures has been created, which when recognised by the application, sends the drone to the address associated with that gesture.
   
-    <img src="app/src/main/res/drawable-v24/gesture_commands.png" width="200" alt="Gestures assigned to drone movements"/>
+    <img src="app/src/main/res/drawable-v24/gesture_commands.png" width="300" alt="Gestures assigned to drone movements"/>
 
   
 - Control of the drone through the movements of the mobile device, using the gyroscope: The gyroscope is used to recognise the movements of the mobile device and pilot the drone according to those movements.
   
-    <img src="app/src/main/res/drawable-v24/com_mov.png" width="200" alt="Movements of the device to move the drone"/>
+    <img src="app/src/main/res/drawable-v24/com_mov.png" width="400" alt="Movements of the device to move the drone"/>
 
 # Demo
 
