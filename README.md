@@ -2,9 +2,9 @@
 DronePilot is a mobile application developed in Kotlin, designed with the purpose of enriching the Drone Engineering Ecosystem. Its purpose is to demonstrate the perfect fit of Native Android in this ecosystem, through the implementation of two functionalities that allow to control the drone. 
 It includes:
     - Control of the drone through gesture recognition: A model of 9 gestures has been created, which when recognised by the application, sends the drone to the address associated with that gesture.
-    ![Gestures assigned to drone movements] (/app/src/main/res/drawable-v24/gesture_commands.png)
+    ![Gestures assigned to drone movements] (app/src/main/res/drawable-v24/gesture_commands.png)
     - Control of the drone through the movements of the mobile device, using the gyroscope: The gyroscope is used to recognise the movements of the mobile device and pilot the drone according to those movements.
-    ![Movements of the device to move the drone] (/app/src/main/res/drawable-v24/com_mov.png)
+    ![Movements of the device to move the drone] (app/src/main/res/drawable-v24/com_mov.png)
 
 # Demo
 This video is a  demo of the functionalities of the Mobile APP.
